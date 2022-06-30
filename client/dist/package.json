@@ -1,0 +1,14 @@
+{
+  "name": "cloudtitan",
+  "version": "1.0.0",
+  "description": "",
+  "main": "cloudtitan.js",
+  "author": "Jorge Prendes",
+  "license": "MIT",
+  "dependencies": {
+    "command-line-args": "^5.2.1",
+    "command-line-usage": "^6.1.3",
+    "ws": "^8.8.0"
+  },
+  "type": "module"
+}

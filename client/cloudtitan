@@ -1,0 +1,31 @@
+#!/bin/bash
+
+has_command() {
+    declare -f | which -a --read-functions $1 > /dev/null 2>&1
+}
+
+install_nvm () {
+    curl -s -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash > /dev/null 2>&1 \
+        && export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")" \
+        && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+}
+
+ensure_nvm() {
+    has_command nvm || install_nvm
+}
+
+install_node() {
+    ensure_nvm \
+        && nvm install 16 >/dev/null 2>&1 \
+        && nvm use 16 >/dev/null 2>&1
+}
+
+ensure_node() {
+    has_command node || install_node
+}
+
+main() {
+    ensure_node && node dist/cloudtitan.js "$@"
+}
+
+main "$@" || echo "Error running cloudtitan"
