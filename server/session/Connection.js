@@ -1,10 +1,11 @@
 import { readFileSync } from "fs";
 import { mkdir, writeFile } from "fs/promises";
+import zlib from "zlib";
 import rimraf from "rimraf";
 import { v4 as uuid } from "uuid";
-import Evented from "../utils/Evented.js";
 
 import { serialize, deserialize } from "../utils/Packager.js";
+import Evented from "../utils/Evented.js";
 import Session from "./Session.js";
 import Watchdog from "../utils/Watchdog.js";
 
@@ -12,6 +13,13 @@ const defaultBitstream = readFileSync("./lowrisc_systems_chip_earlgrey_cw310_0.1
 const defaultFirmware = readFileSync("./hello_world_fpga_cw310.bin");
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const decompress = (data) => new Promise((resolve, reject) => {
+    zlib.gunzip(data, (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+    });
+});
 
 class Connection extends Evented {
     #status = "pending";
@@ -52,26 +60,29 @@ class Connection extends Evented {
     }
 
     #size = null;
-    #onResize = (size) => {
+    #onResize = ([cols, rows]) => {
+        cols = [parseInt(cols), 20, 300].sort((a,b) => a-b)[1];
+        rows = [parseInt(rows), 6, 100].sort((a,b) => a-b)[1];
+        const size = [cols, rows];
         this.#size = size;
         if (this.#status === "started") {
-            this.#session.resize(size);
+            this.#session?.resize(size);
         }
     }
 
     #onBitstream = async (data) => {
         if (this.#status !== "pending") return this.#close(1002, "Session already started");
-        this.emit("bitstream");
         this.#bitstream = decompress(data);
+        this.emit("bitstream");
     }
 
     #onFirmware = async ({ data, offset }) => {
         if (this.#status !== "pending") return this.#close(1002, "Session already started");
-        this.emit("firmware");
         this.#firmware.push({
             data: decompress(data),
             offset,
         });
+        this.emit("firmware");
     }
 
     #onStart = async () => {

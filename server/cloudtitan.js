@@ -1,17 +1,11 @@
 #!/usr/bin/node
 
 import HttpServer from "./HttpServer.js";
-import zlib from "zlib";
-
-import Session from "./session/Session.js";
 
 import {
     HTTPS, LISTEN,
 } from "./config.js";
-import { readFileSync } from "fs";
-import { writeFile } from "fs/promises";
 
-import { serialize, deserialize } from "./utils/Packager.js";
 import Connection from "./session/Connection.js";
 
 const server = new HttpServer({

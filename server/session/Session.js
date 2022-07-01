@@ -60,14 +60,12 @@ class Session extends Evented {
 
     #size = null;
     resize(size) {
-        console.log("session resize to", ...size);
         this.#size = size;
         this.#resize();
     }
 
     #resize = () => {
         if (!this.#size) return;
-        console.log("session resize to", ...this.#size, this.#console, this.#command);
         this.#console?.resize(...this.#size);
         this.#command?.resize(...this.#size);
     }

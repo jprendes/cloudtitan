@@ -26,7 +26,6 @@ class Process extends Evented {
     }
 
     resize(cols, rows) {
-        console.log("process resize to", cols, rows);
         this.#child?.resize(cols - 1, rows - 1);
         this.#child?.resize(cols, rows);
     }
