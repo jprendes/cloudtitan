@@ -1,3 +1,8 @@
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const ROOT = dirname(fileURLToPath(import.meta.url));
+
 const { env } = process;
 
 const DB_ROOT = env.DB_ROOT || "state";
@@ -12,4 +17,5 @@ export {
     LISTEN,
     GAPI_CLIENT_ID,
     OPENTITANTOOL,
+    ROOT,
 };

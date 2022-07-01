@@ -5,9 +5,13 @@ class Evented {
         this.#owned.add(obj);
         return {
             release() {
-                this.#owned.delete(obj);
+                this.release(obj);
             },
         }
+    }
+
+    release(obj) {
+        this.#owned.delete(obj);
     }
 
     destroy() {
@@ -18,6 +22,7 @@ class Evented {
                 obj.remove();
             }
         }
+        this.#owned = new Set();
     }
 }
 

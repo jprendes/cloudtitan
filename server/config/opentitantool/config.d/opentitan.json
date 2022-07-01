@@ -1,0 +1,80 @@
+{
+  "pins": [
+    {
+      "name": "RESET",
+      "mode": "PushPull",
+      "level": true,
+      "pull_mode": "None"
+    },
+    {
+      "name": "SW_STRAP0",
+      "mode": "PushPull",
+      "level": false,
+      "pull_mode": "None"
+    },
+    {
+      "name": "SW_STRAP1",
+      "mode": "PushPull",
+      "level": false,
+      "pull_mode": "None"
+    },
+    {
+      "name": "SW_STRAP2",
+      "mode": "PushPull",
+      "level": false,
+      "pull_mode": "None"
+    },
+    {
+      "name": "TAP_STRAP0",
+      "mode": "PushPull",
+      "level": false,
+      "pull_mode": "None"
+    },
+    {
+      "name": "TAP_STRAP1",
+      "mode": "PushPull",
+      "level": false,
+      "pull_mode": "None"
+    }
+  ],
+  "strappings": [
+    {
+      "name": "ROM_BOOTSTRAP",
+      "pins": [
+        {
+          "name": "SW_STRAP0",
+          "level": true
+        },
+        {
+          "name": "SW_STRAP1",
+          "level": true
+        },
+        {
+          "name": "SW_STRAP2",
+          "level": true
+        }
+      ]
+    },
+    {
+      "name": "RESET",
+      "pins": [
+        {
+          "name": "RESET",
+          "level": false
+        },
+        {
+          "name": "TAP_STRAP1",
+          "level": true
+        }
+      ]
+    }
+  ],
+  "uarts": [
+    {
+      "name": "console",
+      "baudrate": 115200,
+      "parity": "None",
+      "stopbits": "Stop1"
+    }
+  ]
+}

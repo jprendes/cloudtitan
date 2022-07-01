@@ -6,6 +6,8 @@ import usage from "command-line-usage";
 import { readFileSync } from "fs";
 import zlib from "zlib";
 
+import { serialize, deserialize } from "./Packager.js";
+
 const options = [{
     name: 'bitstream',
     alias: "b",
@@ -35,6 +37,10 @@ const options = [{
     type: String,
     typeLabel: '{underline address}',
     description: "The address of the cloudtitan server",
+}, {
+    name: 'no-tls',
+    type: Boolean,
+    description: "Disable TLS in the network connection",
 }];
 
 const opts = args(options, { camelCase: true });
@@ -66,11 +72,17 @@ if (!host) {
     console.exit(1);
 }
 
-if (!host.startsWith("ws:") && !host.startsWith("wss:")) {
-    host = `wss://${host}`;
+if (opts.noTls) {
+    host = `ws://${host}`;
+} else {
+    `ws://${host}`;
 }
 
-const ws = new WebSocket(`${host}/ws`, { headers: { "Auth-Token": token } });
+const ws = new WebSocket(`${host}/client`, { headers: { "Auth-Token": token } });
+
+const send = (type, value) => {
+    ws.send(serialize({ type, value }));
+}
 
 const compress = (data) => {
     return zlib.gzipSync(data, {
@@ -79,25 +91,34 @@ const compress = (data) => {
     });
 }
 
+const stdout = process.stdout;
+
 ws.on("open", () => {
+    if (stdout.isTTY) {
+        stdout.on("resize", () => send("resize", [stdout.columns, stdout.rows]));
+        send("resize", [stdout.columns, stdout.rows]);
+    }
+
     if (opts.bitstream) {
         const bitstream = readFileSync(opts.bitstream);
-        ws.send(Buffer.concat([Buffer.from("b"), compress(bitstream)]));
+        send("bitstream", compress(bitstream))
     }
     
     if (opts.firmware) {
         const firmware = readFileSync(opts.firmware);
-        ws.send(Buffer.concat([Buffer.from("f"), compress(firmware)]));
+        send("firmware", compress(firmware))
     }
 
-    ws.send("start");
+    send("start");
 });
   
 ws.on("message", (data) => {
-    process.stdout.write(data)
+    const msg = deserialize(data);
+    stdout.write(msg.value);
 });
 
 ws.on("close", (code, reason) => {
+    stdout.write("\n");
     if (code !== 1000) {
         console.error(`Connection closed: Error code ${code}: ${reason.toString()}`);
         process.exit(1);

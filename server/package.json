@@ -6,10 +6,14 @@
   "author": "Jorge Prendes",
   "license": "MIT",
   "dependencies": {
+    "leb128": "^0.0.5",
     "level": "^8.0.0",
     "node-pty": "^0.10.1",
     "path-to-regexp": "^6.2.1",
+    "rimraf": "^3.0.2",
+    "rxjs": "^7.5.5",
     "selfsigned": "^2.0.1",
+    "uuid": "^8.3.2",
     "ws": "^8.8.0"
   },
   "type": "module"
