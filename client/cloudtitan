@@ -1,5 +1,10 @@
 #!/bin/bash
 
+print_error() {
+    echo "$@"
+    return 1
+}
+
 has_command() {
     declare -f | which -a --read-functions $1 > /dev/null 2>&1
 }
@@ -21,11 +26,11 @@ install_node() {
 }
 
 ensure_node() {
-    has_command node || install_node
+    has_command node || install_node || print_error "Error running cloudtitan"
 }
 
 main() {
     ensure_node && node dist/cloudtitan.js "$@"
 }
 
-main "$@" || echo "Error running cloudtitan"
+main "$@"
