@@ -8,42 +8,55 @@ import zlib from "zlib";
 
 import { serialize, deserialize } from "./Packager.js";
 
+const stdout = process.stdout;
+
 const options = [{
     name: 'bitstream',
     alias: "b",
     type: String,
     typeLabel: '{underline file}',
-    description: "The bitstream to load in the FPGA"
+    description: "The bitstream to load in the FPGA."
 }, {
     name: 'firmware',
     alias: "f",
+    multiple: true,
     type: String,
-    typeLabel: '{underline file}',
-    description: "The firmware to load in the FPGA"
+    typeLabel: '{underline file[@offset]}',
+    description: "The firmware file to load in the FPGA."
 }, {
     name: 'auth-token',
     alias: 't',
     type: String,
     typeLabel: '{underline token}',
-    description: "Your identification token"
+    description: "Your identification token."
 }, {
     name: 'help',
     alias: 'h',
     type: Boolean,
-    description: "This help message",
+    description: "This help message.",
 }, {
     name: 'host',
     alias: 'H',
     type: String,
     typeLabel: '{underline address}',
-    description: "The address of the cloudtitan server",
+    description: "The address of the cloudtitan server.",
 }, {
     name: 'no-tls',
     type: Boolean,
-    description: "Disable TLS in the network connection",
+    description: "Disable TLS in the network connection.",
+}, {
+    name: 'progress',
+    alias: "p",
+    type: (val) => ["1","true","on","t","y","yes"].includes(val.toLowerCase()),
+    typeLabel: '{underline on|off}',
+    description: "Enable or the progressbar uploading the bitstream and firmware.\nDefaults to true if the output is a TTY.",
 }];
 
 const opts = args(options, { camelCase: true });
+
+if (![true, false].includes(opts.progress)) {
+    opts.progress = stdout.isTTY;
+}
 
 if (opts.help) {
     console.log(usage([
@@ -91,7 +104,19 @@ const compress = (data) => {
     });
 }
 
-const stdout = process.stdout;
+opts.firmware = opts.firmware.map((fw) => {
+    const [path, offset = -1] = fw.split(/@(\d+)$/);
+    return [path, parseInt(offset)];
+});
+
+if (opts.firmware.length > 1) {
+    for (const [path, offset] of opts.firmware) {
+        if (offset < 0) {
+            console.error(`Firmware file "${path}" requires an offset.`);
+            process.exit(1);
+        }
+    }
+}
 
 ws.on("open", () => {
     if (stdout.isTTY) {
@@ -104,21 +129,25 @@ ws.on("open", () => {
         send("bitstream", compress(bitstream))
     }
     
-    if (opts.firmware) {
-        const firmware = readFileSync(opts.firmware);
-        send("firmware", compress(firmware))
+    for (const [path, offset] of opts.firmware) {
+        const firmware = readFileSync(path);
+        send("firmware", { data: compress(firmware), offset })
     }
 
     send("start");
 });
-  
+
+let output = "";
 ws.on("message", (data) => {
     const msg = deserialize(data);
+    if (msg.type === "command" && !opts.progress) return;
+    if (msg.value.length === 0) return;
+    output = msg.value.toString();
     stdout.write(msg.value);
 });
 
 ws.on("close", (code, reason) => {
-    stdout.write("\n");
+    if (!output.endsWith("\n")) stdout.write("\n");
     if (code !== 1000) {
         console.error(`Connection closed: Error code ${code}: ${reason.toString()}`);
         process.exit(1);
