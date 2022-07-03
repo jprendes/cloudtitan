@@ -27,6 +27,14 @@ class Channel extends Evented {
         if (this.ended) this.#end();
     }
 
+    position(task) {
+        return this.#backlog.indexOf(task);
+    }
+
+    remove(task) {
+        this.#backlog = this.#backlog.filter((t) => t !== task);
+    }
+
     #next() {
         if (this.pending > 0) {
             const elem = {
@@ -53,20 +61,24 @@ class Channel extends Evented {
     #workers = 0;
     get workers() { return this.#workers; }
 
-    get work() {
+    get tasks() {
         return {
             [Symbol.asyncIterator]: () => {
                 this.#workers += 1;
                 return {
                     next: () => {
                         const elem = this.#next();
-                        if (elem) return elem;
+                        if (elem) {
+                            this.emit("tick");
+                            return elem;
+                        }
                         this.emit("starved");
                         return new Promise((resolve) => {
                             const listener = this.on(["task", "close"], () => {
                                 const elem = this.#next();
                                 if (elem) {
                                     listener.remove();
+                                    this.emit("tick");
                                     resolve(elem);
                                 }
                             });

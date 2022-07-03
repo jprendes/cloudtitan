@@ -24,6 +24,7 @@ const decompress = (data) => new Promise((resolve, reject) => {
 class Connection extends Evented {
     #status = "pending";
     #conn = null;
+    #queue = null;
     #timeout = 0;
     #watchdog = 0;
 
@@ -32,11 +33,12 @@ class Connection extends Evented {
 
     #session = null;
 
-    constructor(conn, timeout = 300e3, watchdog = 2e3) {
+    constructor(conn, queue, timeout = 300e3, watchdog = 2e3) {
         super();
         this.#timeout = timeout;
         this.#watchdog = watchdog;
         this.#conn = conn;
+        this.#queue = queue;
         conn.on("message", this.#onMessage);
     }
 
@@ -85,10 +87,44 @@ class Connection extends Evented {
         this.emit("firmware");
     }
 
+    #queueMessenger = (task) => {
+        let listener = null;
+        const timeout = setTimeout(() => {
+            // Wait a bit before sending the queue message
+            // It's not worth sending it if it's goings to start straight away
+            this.#send("queued", 1 + this.#queue.position(task));
+            listener = this.#queue.on("tick", () => {
+                this.#send("queued", 1 + this.#queue.position(task));
+            });
+        }, 1000);
+
+        return {
+            remove: () => {
+                clearTimeout(timeout);
+                listener?.remove();
+            }
+        }
+    }
+
     #onStart = async () => {
         if (this.#status !== "pending") return this.#close(1002, "Session already started");
+        this.#status = "queued";
+        this.emit("queued");
         try {
-            await this.#start()
+            await new Promise((resolve, reject) => {
+                let handle = null;
+                const task = async () => {
+                    handle.remove();
+                    try {
+                        await this.#start();
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                handle = this.#queueMessenger(task);
+                this.#queue.push(task);
+            });
         } catch (err) {
             console.error(err);
             this.#close(1002, "Internal server error running session");
@@ -128,7 +164,7 @@ class Connection extends Evented {
         const firmware = Promise.all(this.#firmware.map(async (fw, i) => {
             const path = `${root}/firmware-${i}`;
             await writeFile(path, await fw.data);
-            if (fw.offset !== -1) return `${path}:${fw.offset}`;
+            if (fw.offset !== -1) return `${path}@${fw.offset}`;
             return path;
         }));
 
@@ -157,6 +193,7 @@ class Connection extends Evented {
 
         if (this.#watchdog > 0) {
             const watchdog = new Watchdog(this.#watchdog);
+            watchdog.tick();
             watchdog.on("alert", () => session.kill());
             session.on("console", () => watchdog.tick());
         }

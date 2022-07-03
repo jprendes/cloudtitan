@@ -49,7 +49,13 @@ const options = [{
     alias: "p",
     type: (val) => ["1","true","on","t","y","yes"].includes(val.toLowerCase()),
     typeLabel: '{underline on|off}',
-    description: "Enable or the progressbar uploading the bitstream and firmware.\nDefaults to true if the output is a TTY.",
+    description: "Enable or disable the progressbar for queueing, loading bitstream and firmware.\nDefaults to true if the output is a TTY.",
+}, {
+    name: 'queue',
+    alias: "q",
+    type: (val) => ["1","true","on","t","y","yes"].includes(val.toLowerCase()),
+    typeLabel: '{underline on|off}',
+    description: "Enable or disable showing the job positing in the job queue.\nDefaults to the value of the progress option.",
 }];
 
 const opts = args(options, { camelCase: true });
@@ -58,17 +64,18 @@ if (![true, false].includes(opts.progress)) {
     opts.progress = stdout.isTTY;
 }
 
+if (![true, false].includes(opts.queue)) {
+    opts.queue = opts.progress;
+}
+
 if (opts.help) {
-    console.log(usage([
-        {
-            header: 'Cloudtitan',
-            content: 'Run your bitstream and program in a cloud CW310'
-        },
-        {
-            header: 'Options',
-            optionList: options,
-        }
-    ]));
+    console.log(usage([{
+        header: 'Cloudtitan',
+        content: 'Run your bitstream and program in a cloud CW310'
+    }, {
+        header: 'Options',
+        optionList: options,
+    }]));
     process.exit(0);
 }
 
@@ -140,6 +147,12 @@ ws.on("open", () => {
 let output = "";
 ws.on("message", (data) => {
     const msg = deserialize(data);
+    if (msg.type === "queued") {
+        if (!opts.progress) return;
+        stdout.write("\x1B[2K\r");
+        if (msg.value > 0) stdout.write(`Queued job: position ${msg.value}`);
+        return;
+    }
     if (msg.type === "command" && !opts.progress) return;
     if (msg.value.length === 0) return;
     output = msg.value.toString();

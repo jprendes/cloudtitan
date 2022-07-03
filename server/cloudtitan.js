@@ -7,6 +7,21 @@ import {
 } from "./config.js";
 
 import Connection from "./session/Connection.js";
+import Channel from "./utils/Channel.js";
+
+const queue = new Channel();
+
+async function worker(q) {
+    for await (const task of q.tasks) {
+        try {
+            await task();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+};
+
+worker(queue);
 
 const server = new HttpServer({
     https: HTTPS,
@@ -20,7 +35,7 @@ server.ws("/client", (conn, req) => {
         return;
     }
 
-    const manager = new Connection(conn, 300e3, 2e3);
+    const manager = new Connection(conn, queue, 500e3, 2e3);
     return new Promise((resolve) => {
         manager.on("end", resolve);
     });
