@@ -5,7 +5,7 @@ class Process extends Evented {
     #child = null;
     #exit = null;
 
-    constructor(program, args, opts = {}) {
+    constructor(program, args = [], opts = {}) {
         super();
         this.#child = spawn(program, args, {
             ...opts,

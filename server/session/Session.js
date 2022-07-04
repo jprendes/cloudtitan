@@ -12,6 +12,8 @@ const ENV = {
     XDG_CONFIG_HOME: `${ROOT}/config`,
 }
 
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 class Session extends Evented {
     #timeout = null;
     #console = null;
@@ -37,7 +39,10 @@ class Session extends Evented {
     }
 
     #init = async () => {
-        await null;
+        // Run the reload usb command to avoid the sporadic driver problem
+        await new Process("cloudtitan-reloadusb").wait();
+        await pause(100);
+
         this.#console = this.#spawn("console", "-q", "--baudrate", "115200");
         this.#console.on("data", (data) => this.emit("console", data));
         this.own(this.#console);
