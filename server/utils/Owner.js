@@ -7,7 +7,7 @@ class Evented {
             release() {
                 this.release(obj);
             },
-        }
+        };
     }
 
     release(obj) {

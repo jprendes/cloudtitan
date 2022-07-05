@@ -19,7 +19,7 @@ async function worker(q) {
             console.error(err);
         }
     }
-};
+}
 
 worker(queue);
 
@@ -28,7 +28,7 @@ const server = new HttpServer({
     logError: console.error,
 });
 
-server.ws("/client", (conn, req) => {
+server.ws("/client", async (conn, req) => {
     const token = req.headers?.["auth-token"];
     if (token !== "hola mundo") {
         conn.close(1008, "Unauthorized");
@@ -36,10 +36,8 @@ server.ws("/client", (conn, req) => {
     }
 
     const manager = new Connection(conn, queue, 500e3, 2e3);
-    return new Promise((resolve) => {
-        manager.on("end", resolve);
-    });
-})
+    await new Promise((resolve) => { manager.on("end", resolve); });
+});
 
 server.listen(LISTEN);
 console.log(`running at ${LISTEN

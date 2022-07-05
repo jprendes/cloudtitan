@@ -50,33 +50,34 @@ class Connection extends Evented {
             case "firmware": { return this.#onFirmware(msg.value); }
             case "start": { return this.#onStart(msg.value); }
             case "resize": { return this.#onResize(msg.value); }
+            default: { throw new Error("Invalid message"); }
             }
         } catch (err) {
             this.#close(1002, "Invalid message");
             console.error(err.stack);
         }
-    }
+    };
 
     #close = (code, reason) => {
         this.#conn.close(code, reason);
-    }
+    };
 
     #size = null;
     #onResize = ([cols, rows]) => {
-        cols = [parseInt(cols), 20, 300].sort((a,b) => a-b)[1];
-        rows = [parseInt(rows), 6, 100].sort((a,b) => a-b)[1];
+        [, cols] = [parseInt(cols, 10), 20, 300].sort((a, b) => a - b);
+        [, rows] = [parseInt(rows, 10), 6, 100].sort((a, b) => a - b);
         const size = [cols, rows];
         this.#size = size;
         if (this.#status === "started") {
             this.#session?.resize(size);
         }
-    }
+    };
 
     #onBitstream = async (data) => {
         if (this.#status !== "pending") return this.#close(1002, "Session already started");
         this.#bitstream = decompress(data);
         this.emit("bitstream");
-    }
+    };
 
     #onFirmware = async ({ data, offset }) => {
         if (this.#status !== "pending") return this.#close(1002, "Session already started");
@@ -85,7 +86,7 @@ class Connection extends Evented {
             offset,
         });
         this.emit("firmware");
-    }
+    };
 
     #queueMessenger = (task) => {
         let listener = null;
@@ -102,9 +103,9 @@ class Connection extends Evented {
             remove: () => {
                 clearTimeout(timeout);
                 listener?.remove();
-            }
-        }
-    }
+            },
+        };
+    };
 
     #onStart = async () => {
         if (this.#status !== "pending") return this.#close(1002, "Session already started");
@@ -129,10 +130,10 @@ class Connection extends Evented {
             console.error(err);
             this.#close(1002, "Internal server error running session");
         }
-    }
+    };
 
     #send(type, value) {
-        this.#conn.send(serialize({ type, value }))
+        this.#conn.send(serialize({ type, value }));
     }
 
     #start = async () => {
@@ -140,7 +141,7 @@ class Connection extends Evented {
 
         this.#status = "started";
         this.emit("start");
-        
+
         if (!this.#bitstream) {
             this.#bitstream = defaultBitstream;
         }
@@ -208,7 +209,7 @@ class Connection extends Evented {
         this.#close(1000, "Done");
 
         this.emit("end");
-    }
+    };
 }
 
 export default Connection;

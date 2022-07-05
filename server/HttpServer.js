@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import { createServer as createHttpServer, ServerResponse, STATUS_CODES } from "http";
 import { createServer as createHttpsServer } from "https";
 import { parse } from "url";
@@ -297,4 +296,3 @@ class HttpServer {
 }
 
 export default HttpServer;
-export { HttpServer };

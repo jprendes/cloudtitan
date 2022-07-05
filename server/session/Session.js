@@ -1,10 +1,9 @@
-import Evented from "../utils/Evented.js";
-import Process from "../utils/Process.js";
-import { OPENTITANTOOL } from "../config.js";
 import { watch, access } from "fs/promises";
 import { parse } from "path";
 
-import { ROOT } from "../config.js";
+import Evented from "../utils/Evented.js";
+import Process from "../utils/Process.js";
+import { ROOT, OPENTITANTOOL } from "../config.js";
 
 const CONF = [
     "--interface=cw310",
@@ -12,7 +11,7 @@ const CONF = [
 ];
 const ENV = {
     XDG_CONFIG_HOME: `${ROOT}/config`,
-}
+};
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -23,14 +22,14 @@ const exists = async (path) => {
     } catch (e) {
         return false;
     }
-}
+};
 
 class Session extends Evented {
     #timeout = null;
     #console = null;
     #command = null;
     #ready = null;
-    
+
     constructor(timeout) {
         super();
         this.#ready = this.#init(timeout);
@@ -39,14 +38,14 @@ class Session extends Evented {
     #spawn = (...args) => {
         const opts = { env: ENV };
         if (this.#size) {
-            opts.cols = this.#size[0];
-            opts.rows = this.#size[1];
+            [opts.cols, opts.rows] = this.#size;
         }
         return new Process(OPENTITANTOOL, [
-            ...CONF, ...args
+            ...CONF, ...args,
         ], opts);
-    }
+    };
 
+    // eslint-disable-next-line class-methods-use-this
     #watch = async (path, timeout = 10e3) => {
         const { dir, base } = parse(path);
         const ac = new AbortController();
@@ -62,7 +61,7 @@ class Session extends Evented {
             }
         }
         return false;
-    }
+    };
 
     #reloadusb = async () => {
         const watchers = Promise.all([
@@ -72,7 +71,7 @@ class Session extends Evented {
         await new Process("cloudtitan-reloadusb").wait();
         await watchers;
         await pause(2e3);
-    }
+    };
 
     #init = async (timeout) => {
         // Run the reload usb command to avoid the sporadic driver problem
@@ -86,12 +85,12 @@ class Session extends Evented {
         this.#console.on("data", (data) => this.emit("console", data));
         this.own(this.#console);
         return this;
-    }
+    };
 
     #onTimeout = () => {
         this.emit("timeout");
         this.#end?.();
-    }
+    };
 
     get ended() { return !!this.#console?.exited; }
     #end = () => {
@@ -101,7 +100,7 @@ class Session extends Evented {
         this.#end = null;
         this.emit("end");
         this.destroy();
-    }
+    };
 
     #size = null;
     resize(size) {
@@ -113,7 +112,7 @@ class Session extends Evented {
         if (!this.#size) return;
         this.#console?.resize(...this.#size);
         this.#command?.resize(...this.#size);
-    }
+    };
 
     kill() {
         this.#end?.();
@@ -150,6 +149,6 @@ class Session extends Evented {
         this.#end?.();
         super.destroy();
     }
-};
+}
 
 export default Session;

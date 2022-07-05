@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { unsigned } from "leb128";
 
 function serialize(obj) {
@@ -18,7 +19,7 @@ function serialize_any(obj, visited) {
         buffers.push(Buffer.from(Float64Array.from([obj]).buffer));
     } else if (typeof obj === "string") {
         buffers.push(Buffer.from("s"));
-        buffers.push(makeSized(Buffer.from(obj)))
+        buffers.push(makeSized(Buffer.from(obj)));
     } else if (typeof obj === "boolean") {
         buffers.push(obj ? Buffer.from("t") : Buffer.from("f"));
     } else if (!obj) { // null or undefined
@@ -61,7 +62,7 @@ function serialize_obj(obj, visited) {
     const entries = Object.entries(obj);
     buffers.push(unsigned.encode(entries.length));
     for (const [key, value] of entries) {
-        buffers.push(makeSized(Buffer.from(key)))
+        buffers.push(makeSized(Buffer.from(key)));
         buffers.push(serialize_any(value, visited));
     }
     return Buffer.concat(buffers);
@@ -69,6 +70,7 @@ function serialize_obj(obj, visited) {
 
 function deserialize_leb(buffer) {
     const l = unsigned.decode(buffer);
+    // eslint-disable-next-line no-bitwise
     while (buffer[0] & 0x80) buffer = buffer.slice(1);
     buffer = buffer.slice(1);
     return [l, buffer];
@@ -76,12 +78,12 @@ function deserialize_leb(buffer) {
 
 function deserialize(buffer) {
     const [result, b] = deserialize_any(buffer);
-    if (b.length > 0) throw new Error("Invalid serialized value"); 
+    if (b.length > 0) throw new Error("Invalid serialized value");
     return result;
 }
 
 function deserialize_any(buffer) {
-    const tag = buffer.slice(0,1).toString();
+    const tag = buffer.slice(0, 1).toString();
     const buff = buffer.slice(1);
     switch (tag) {
     case "n": {
@@ -93,7 +95,7 @@ function deserialize_any(buffer) {
     case "s": {
         const [l, b] = deserialize_leb(buff);
         return [
-            b.slice(0,l).toString(),
+            b.slice(0, l).toString(),
             b.slice(l),
         ];
     }
@@ -112,7 +114,7 @@ function deserialize_any(buffer) {
     case "b": {
         const [l, b] = deserialize_leb(buff);
         return [
-            b.slice(0,l),
+            b.slice(0, l),
             b.slice(l),
         ];
     }
@@ -142,9 +144,10 @@ function deserialize_obj(buffer) {
     const result = {};
     let b = buff;
     for (let i = 0; i < l; ++i) {
-        let key, k_l, val;
+        let k_l;
+        let val;
         [k_l, b] = deserialize_leb(b);
-        key = b.slice(0,k_l).toString();
+        const key = b.slice(0, k_l).toString();
         [val, b] = deserialize_any(b.slice(k_l));
         result[key] = val;
     }

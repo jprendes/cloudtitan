@@ -56,7 +56,7 @@ class Channel extends Evented {
     #end = () => {
         this.emit("end");
         super.destroy();
-    }
+    };
 
     #workers = 0;
     get workers() { return this.#workers; }
@@ -67,7 +67,7 @@ class Channel extends Evented {
                 this.#workers += 1;
                 return {
                     next: () => {
-                        const elem = this.#next();
+                        let elem = this.#next();
                         if (elem) {
                             this.emit("tick");
                             return elem;
@@ -75,7 +75,7 @@ class Channel extends Evented {
                         this.emit("starved");
                         return new Promise((resolve) => {
                             const listener = this.on(["task", "close"], () => {
-                                const elem = this.#next();
+                                elem = this.#next();
                                 if (elem) {
                                     listener.remove();
                                     this.emit("tick");
@@ -91,8 +91,8 @@ class Channel extends Evented {
                         return { done: true };
                     },
                 };
-            }
-        }
+            },
+        };
     }
 
     destroy() {

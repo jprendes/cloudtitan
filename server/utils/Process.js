@@ -23,7 +23,7 @@ class Process extends Evented {
         this.emit("end");
         this.#end = null;
         this.destroy();
-    }
+    };
 
     resize(cols, rows) {
         this.#child?.resize(cols - 1, rows - 1);
