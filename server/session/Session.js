@@ -1,6 +1,8 @@
 import Evented from "../utils/Evented.js";
 import Process from "../utils/Process.js";
 import { OPENTITANTOOL } from "../config.js";
+import { watch, access } from "fs/promises";
+import { parse } from "path";
 
 import { ROOT } from "../config.js";
 
@@ -14,17 +16,24 @@ const ENV = {
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const exists = async (path) => {
+    try {
+        await access(path);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 class Session extends Evented {
     #timeout = null;
     #console = null;
     #command = null;
+    #ready = null;
     
     constructor(timeout) {
         super();
-        if (timeout > 0) {
-            this.#timeout = setTimeout(this.#onTimeout, timeout);
-        }
-        this.#init();
+        this.#ready = this.#init(timeout);
     }
 
     #spawn = (...args) => {
@@ -38,14 +47,45 @@ class Session extends Evented {
         ], opts);
     }
 
-    #init = async () => {
-        // Run the reload usb command to avoid the sporadic driver problem
+    #watch = async (path, timeout = 10e3) => {
+        const { dir, base } = parse(path);
+        const ac = new AbortController();
+        const { signal } = ac;
+        setTimeout(() => ac.abort(), timeout);
+        const watcher = watch(dir, { signal });
+        for await (const { filename } of watcher) {
+            if (filename === base) {
+                if (await exists(path)) {
+                    ac.abort();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    #reloadusb = async () => {
+        const watchers = Promise.all([
+            this.#watch("/dev/ttyACM0"),
+            this.#watch("/dev/ttyACM1"),
+        ]);
         await new Process("cloudtitan-reloadusb").wait();
-        await pause(100);
+        await watchers;
+        await pause(2e3);
+    }
+
+    #init = async (timeout) => {
+        // Run the reload usb command to avoid the sporadic driver problem
+        await this.#reloadusb();
+
+        if (timeout > 0) {
+            this.#timeout = setTimeout(this.#onTimeout, timeout);
+        }
 
         this.#console = this.#spawn("console", "-q", "--baudrate", "115200");
         this.#console.on("data", (data) => this.emit("console", data));
         this.own(this.#console);
+        return this;
     }
 
     #onTimeout = () => {
@@ -53,9 +93,9 @@ class Session extends Evented {
         this.#end?.();
     }
 
-    get ended() { return this.#console.exited; }
+    get ended() { return !!this.#console?.exited; }
     #end = () => {
-        this.#console.kill();
+        this.#console?.kill();
         this.#command?.kill();
         clearTimeout(this.#timeout);
         this.#end = null;
@@ -79,7 +119,12 @@ class Session extends Evented {
         this.#end?.();
     }
 
-    wait() {
+    ready() {
+        return this.#ready;
+    }
+
+    async wait() {
+        await this.ready();
         return this.#console.wait();
     }
 

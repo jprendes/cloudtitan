@@ -171,6 +171,8 @@ class Connection extends Evented {
         const session = new Session(this.#timeout);
         this.#session = session;
 
+        await session.ready();
+
         if (this.#size) session.resize(this.#size);
 
         session.on("command", (data) => this.#send("command", data));
