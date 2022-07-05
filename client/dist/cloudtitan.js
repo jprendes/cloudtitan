@@ -56,6 +56,11 @@ const options = [{
     type: (val) => ["1", "true", "on", "t", "y", "yes"].includes(val.toLowerCase()),
     typeLabel: "{underline on|off}",
     description: "Enable or disable showing the job positing in the job queue.\nDefaults to the value of the progress option.",
+}, {
+    name: "selfsigned",
+    alias: "s",
+    type: Boolean,
+    description: "Accept self signed certificates from TLS servers.",
 }];
 
 const opts = args(options, { camelCase: true });
@@ -98,7 +103,10 @@ if (opts.noTls) {
     host = `wss://${host}`;
 }
 
-const ws = new WebSocket(`${host}/client`, { headers: { "Auth-Token": token } });
+const ws = new WebSocket(`${host}/client`, {
+    headers: { "Auth-Token": token },
+    rejectUnauthorized: !opts.selfsigned,
+});
 
 const send = (type, value) => {
     ws.send(serialize({ type, value }));
