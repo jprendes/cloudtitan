@@ -70,7 +70,6 @@ class Session extends Evented {
         ]);
         await new Process("cloudtitan-reloadusb").wait();
         await watchers;
-        await pause(2e3);
     };
 
     #init = async (timeout) => {

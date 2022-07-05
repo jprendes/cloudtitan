@@ -1,7 +1,7 @@
-import { dirname } from "path";
+import { dirname, join, normalize } from "path";
 import { fileURLToPath } from "url";
 
-const ROOT = dirname(fileURLToPath(import.meta.url));
+const ROOT = normalize(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
 const { env } = process;
 
