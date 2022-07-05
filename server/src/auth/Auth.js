@@ -1,8 +1,11 @@
 import { STATUS_CODES, IncomingMessage } from "http";
 import * as cookie from "../utils/cookie.js";
 import Evented from "../utils/Evented.js";
+import DB from "../DB.js";
 
-const Users = require("./Users.js");
+import Users from "./Users.js";
+
+const db = new DB("tokens");
 
 function sendJSON(res, val) {
     res.writeHead(200, {
@@ -27,6 +30,9 @@ class Auth extends Evented {
             "/auth/login": this.#serve_login,
             "/auth/logout": this.#serve_logout,
             "/auth/query": this.#serve_query,
+            "/auth/token/new": this.#serve_new_tokens,
+            "/auth/token/del": this.#serve_rm_tokens,
+            "/auth/token/list": this.#serve_ls_tokens,
         };
         await this.#users;
         delete this.then;
@@ -107,7 +113,55 @@ class Auth extends Evented {
             await this.#serve_logout(req, res);
             return;
         }
-        sendJSON(res, user);
+        const { tokens, ...u } = user;
+        sendJSON(res, u);
+    };
+
+    #serve_ls_tokens = async (req, res) => {
+        await this;
+        const user = this.user(req);
+        if (!user) {
+            await this.#serve_logout(req, res);
+            return;
+        }
+        sendJSON(res, user.tokens);
+    };
+
+    #serve_new_tokens = async (req, res) => {
+        await this;
+        const user = this.user(req);
+        if (!user) {
+            await this.#serve_logout(req, res);
+            return;
+        }
+        const token = this.#users.newToken(user);
+        sendJSON(res, token);
+    };
+
+    #serve_rm_tokens = async (req, res) => {
+        const body = await new Promise((resolve, reject) => {
+            const chunks = [];
+            req.on("data", (fragments) => chunks.push(fragments));
+            req.on("end", () => resolve(Buffer.concat(chunks).toString()));
+            req.on("error", reject);
+        });
+
+        const { token } = JSON.parse(body);
+
+        await this;
+        const user = this.user(req);
+
+        if (!user) {
+            await this.#serve_logout(req, res);
+            return;
+        }
+        if (!user.tokens.includes(token)) {
+            sendJSON(res, { error: "Invalid token" });
+            return;
+        }
+
+        this.#users.removeToken(token);
+        sendJSON(res, { success: true });
     };
 }
 

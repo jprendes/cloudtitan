@@ -12,11 +12,16 @@ const googleAuth = new GoogleOAuth2(GAPI_CLIENT_ID);
 class Users extends Evented {
     #byUuid = new Map();
     #byId = new Map();
+    #byToken = new Map();
 
     #init = async () => {
         for await (const [key, value] of db.iterator()) {
+            value.tokens = value.tokens || [uuidv4()];
             this.#byId.set(key, value);
             this.#byUuid.set(value.uuid, value);
+            for (const token of value.tokens) {
+                this.#byToken.set(token, value);
+            }
         }
         delete this.then;
         this.emit("loaded", []);
@@ -38,6 +43,25 @@ class Users extends Evented {
 
     byId(id) {
         return this.#byId.get(id) || null;
+    }
+
+    byToken(token) {
+        return this.#byToken.get(token) || null;
+    }
+
+    newToken(user) {
+        const token = uuidv4();
+        user.tokens.push(token);
+        this.#byToken.set(token, user);
+        db.set(user.id, user);
+        return token;
+    }
+
+    removeToken(token) {
+        const user = this.byToken(token);
+        user.tokens = user.tokens.filter((t) => t !== token);
+        this.#byToken.delete(token);
+        db.set(user.id, user);
     }
 
     async fromToken(token) {
