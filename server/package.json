@@ -6,6 +6,8 @@
   "author": "Jorge Prendes",
   "license": "MIT",
   "dependencies": {
+    "cookie": "^0.5.0",
+    "google-auth-library": "^8.1.0",
     "leb128": "^0.0.5",
     "level": "^8.0.0",
     "node-pty": "^0.10.1",
@@ -16,5 +18,10 @@
     "uuid": "^8.3.2",
     "ws": "^8.8.0"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "eslint": "^8.19.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0"
+  }
 }
