@@ -11,50 +11,50 @@ import { serialize, deserialize } from "./Packager.js";
 const { stdout, stderr } = process;
 
 const options = [{
-    name: 'bitstream',
+    name: "bitstream",
     alias: "b",
     type: String,
-    typeLabel: '{underline file}',
-    description: "The bitstream to load in the FPGA."
+    typeLabel: "{underline file}",
+    description: "The bitstream to load in the FPGA.",
 }, {
-    name: 'firmware',
+    name: "firmware",
     alias: "f",
     multiple: true,
     type: String,
-    typeLabel: '{underline file[@offset]}',
-    description: "The firmware file to load in the FPGA."
+    typeLabel: "{underline file[@offset]}",
+    description: "The firmware file to load in the FPGA.",
 }, {
-    name: 'auth-token',
-    alias: 't',
+    name: "auth-token",
+    alias: "t",
     type: String,
-    typeLabel: '{underline token}',
-    description: "Your identification token."
+    typeLabel: "{underline token}",
+    description: "Your identification token.",
 }, {
-    name: 'help',
-    alias: 'h',
+    name: "help",
+    alias: "h",
     type: Boolean,
     description: "This help message.",
 }, {
-    name: 'host',
-    alias: 'H',
+    name: "host",
+    alias: "H",
     type: String,
-    typeLabel: '{underline address}',
+    typeLabel: "{underline address}",
     description: "The address of the cloudtitan server.",
 }, {
-    name: 'no-tls',
+    name: "no-tls",
     type: Boolean,
     description: "Disable TLS in the network connection.",
 }, {
-    name: 'progress',
+    name: "progress",
     alias: "p",
-    type: (val) => ["1","true","on","t","y","yes"].includes(val.toLowerCase()),
-    typeLabel: '{underline on|off}',
+    type: (val) => ["1", "true", "on", "t", "y", "yes"].includes(val.toLowerCase()),
+    typeLabel: "{underline on|off}",
     description: "Enable or disable the progressbar for queueing, loading bitstream and firmware.\nDefaults to true if the output is a TTY.",
 }, {
-    name: 'queue',
+    name: "queue",
     alias: "q",
-    type: (val) => ["1","true","on","t","y","yes"].includes(val.toLowerCase()),
-    typeLabel: '{underline on|off}',
+    type: (val) => ["1", "true", "on", "t", "y", "yes"].includes(val.toLowerCase()),
+    typeLabel: "{underline on|off}",
     description: "Enable or disable showing the job positing in the job queue.\nDefaults to the value of the progress option.",
 }];
 
@@ -70,10 +70,10 @@ if (![true, false].includes(opts.queue)) {
 
 if (opts.help) {
     console.log(usage([{
-        header: 'Cloudtitan',
-        content: 'Run your bitstream and program in a cloud CW310'
+        header: "Cloudtitan",
+        content: "Run your bitstream and program in a cloud CW310",
     }, {
-        header: 'Options',
+        header: "Options",
         optionList: options,
     }]));
     process.exit(0);
@@ -95,25 +95,23 @@ if (!host) {
 if (opts.noTls) {
     host = `ws://${host}`;
 } else {
-    `ws://${host}`;
+    host = `wss://${host}`;
 }
 
 const ws = new WebSocket(`${host}/client`, { headers: { "Auth-Token": token } });
 
 const send = (type, value) => {
     ws.send(serialize({ type, value }));
-}
+};
 
-const compress = (data) => {
-    return zlib.gzipSync(data, {
-        chunkSize: 32 * 1024,
-        level: 9,
-    });
-}
+const compress = (data) => zlib.gzipSync(data, {
+    chunkSize: 32 * 1024,
+    level: 9,
+});
 
 opts.firmware = opts.firmware.map((fw) => {
     const [path, offset = -1] = fw.split(/@(\d+)$/);
-    return [path, parseInt(offset)];
+    return [path, parseInt(offset, 10)];
 });
 
 if (opts.firmware.length > 1) {
@@ -133,12 +131,12 @@ ws.on("open", () => {
 
     if (opts.bitstream) {
         const bitstream = readFileSync(opts.bitstream);
-        send("bitstream", compress(bitstream))
+        send("bitstream", compress(bitstream));
     }
-    
+
     for (const [path, offset] of opts.firmware) {
         const firmware = readFileSync(path);
-        send("firmware", { data: compress(firmware), offset })
+        send("firmware", { data: compress(firmware), offset });
     }
 
     send("start");
