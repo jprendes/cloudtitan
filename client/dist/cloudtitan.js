@@ -8,7 +8,7 @@ import zlib from "zlib";
 
 import { serialize, deserialize } from "./Packager.js";
 
-const stdout = process.stdout;
+const { stdout, stderr } = process;
 
 const options = [{
     name: 'bitstream',
@@ -144,23 +144,36 @@ ws.on("open", () => {
     send("start");
 });
 
-let output = "";
+let stdoutOutput = "";
+let stderrOutput = "";
 ws.on("message", (data) => {
     const msg = deserialize(data);
     if (msg.type === "queued") {
         if (!opts.progress) return;
-        stdout.write("\x1B[2K\r");
-        if (msg.value > 0) stdout.write(`Queued job: position ${msg.value}`);
+        stderr.write("\x1B[2K\r");
+        if (msg.value > 0) {
+            stderr.write("\x1B[36m");
+            stderr.write(`Queued job: position ${msg.value}`);
+            stderr.write("\x1B[0m");
+        }
         return;
     }
-    if (msg.type === "command" && !opts.progress) return;
-    if (msg.value.length === 0) return;
-    output = msg.value.toString();
-    stdout.write(msg.value);
+    if (msg.type === "command") {
+        stderrOutput += msg.value.toString();
+        if (opts.progress) {
+            stderr.write("\x1B[32m");
+            stderr.write(msg.value);
+            stderr.write("\x1B[0m");
+        }
+    } else {
+        stdoutOutput += msg.value.toString();
+        stdout.write(msg.value);
+    }
 });
 
 ws.on("close", (code, reason) => {
-    if (!output.endsWith("\n")) stdout.write("\n");
+    if (!stdoutOutput.endsWith("\n")) stdout.write("\n");
+    if (!stderrOutput.endsWith("\n")) stderr.write("\n");
     if (code !== 1000) {
         console.error(`Connection closed: Error code ${code}: ${reason.toString()}`);
         process.exit(1);
