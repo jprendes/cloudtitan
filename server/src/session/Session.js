@@ -13,8 +13,6 @@ const ENV = {
     XDG_CONFIG_HOME: `${ROOT}/config`,
 };
 
-const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const exists = async (path) => {
     try {
         await access(path);
