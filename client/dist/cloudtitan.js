@@ -109,6 +109,7 @@ const compress = (data) => zlib.gzipSync(data, {
     level: 9,
 });
 
+opts.firmware = opts.firmware || [];
 opts.firmware = opts.firmware.map((fw) => {
     const [path, offset = -1] = fw.split(/@(\d+)$/);
     return [path, parseInt(offset, 10)];
