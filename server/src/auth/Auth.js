@@ -1,11 +1,8 @@
 import { STATUS_CODES, IncomingMessage } from "http";
 import * as cookie from "../utils/cookie.js";
 import Evented from "../utils/Evented.js";
-import DB from "../DB.js";
 
 import Users from "./Users.js";
-
-const db = new DB("tokens");
 
 function sendJSON(res, val) {
     res.writeHead(200, {
