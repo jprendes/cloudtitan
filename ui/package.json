@@ -1,7 +1,7 @@
 {
-    "name": "code-share-ui",
+    "name": "cloudtitan-ui",
     "version": "0.1.0",
-    "description": "code-share ui",
+    "description": "cloudtitan ui",
     "scripts": {
         "prebuild": "rimraf dist",
         "build": "webpack --progress --mode=production",

@@ -1,7 +1,7 @@
 {
-  "name": "cloudtitan",
+  "name": "cloudtitan-client",
   "version": "1.0.0",
-  "description": "",
+  "description": "cloudtitan client",
   "main": "cloudtitan.js",
   "author": "Jorge Prendes",
   "license": "MIT",
