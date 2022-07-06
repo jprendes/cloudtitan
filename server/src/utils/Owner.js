@@ -1,4 +1,4 @@
-class Evented {
+class Owner {
     #owned = new Set();
 
     own(obj) {
@@ -26,4 +26,4 @@ class Evented {
     }
 }
 
-export default Evented;
+export default Owner;
