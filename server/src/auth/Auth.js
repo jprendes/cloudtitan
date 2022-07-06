@@ -66,7 +66,7 @@ class Auth extends Evented {
 
     user(uuid) {
         if (uuid instanceof IncomingMessage) uuid = cookie.get(uuid, "identity");
-        const user = this.#users.byUuid(uuid);
+        const user = this.#users.byUuid(uuid) || this.#users.byToken(uuid);
         return user || null;
     }
 
@@ -131,7 +131,7 @@ class Auth extends Evented {
             await this.#serve_logout(req, res);
             return;
         }
-        const token = this.#users.newToken(user);
+        const token = await this.#users.newToken(user);
         sendJSON(res, token);
     };
 

@@ -1,4 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
+import { generateKey } from "crypto";
+
 import GoogleOAuth2 from "./GoogleOAuth2.js";
 
 import Evented from "../utils/Evented.js";
@@ -9,6 +10,19 @@ const db = new DB("users");
 
 const googleAuth = new GoogleOAuth2(GAPI_CLIENT_ID);
 
+const uuid = async () => {
+    const key = await new Promise((ressolve, reject) => {
+        generateKey("aes", { length: 256 }, (error, key) => {
+            if (error) {
+                reject(error);
+            } else {
+                ressolve(key);
+            }
+        });
+    });
+    return key.export().toString("hex");
+}
+
 class Users extends Evented {
     #byUuid = new Map();
     #byId = new Map();
@@ -16,7 +30,7 @@ class Users extends Evented {
 
     #init = async () => {
         for await (const [key, value] of db.iterator()) {
-            value.tokens = value.tokens || [uuidv4()];
+            value.tokens = value.tokens || [await uuid()];
             this.#byId.set(key, value);
             this.#byUuid.set(value.uuid, value);
             for (const token of value.tokens) {
@@ -49,8 +63,9 @@ class Users extends Evented {
         return this.#byToken.get(token) || null;
     }
 
-    newToken(user) {
-        const token = uuidv4();
+    async newToken(user) {
+        user = this.byUuid(user.uuid);
+        const token = await uuid();
         user.tokens.push(token);
         this.#byToken.set(token, user);
         db.set(user.id, user);
@@ -71,7 +86,8 @@ class Users extends Evented {
         const persisted = this.byId(user.id);
 
         if (!persisted) {
-            user.uuid = uuidv4();
+            user.uuid = await uuid();
+            user.tokens = [];
             this.#byId.set(user.id, user);
             this.#byUuid.set(user.uuid, user);
             db.set(user.id, user);
