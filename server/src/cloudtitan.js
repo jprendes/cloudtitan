@@ -47,7 +47,8 @@ const server = new HttpServer({
 
 server.ws("/client", async (conn, req) => {
     const token = req.headers?.["auth-token"];
-    if (token !== "hola mundo") {
+    const user = auth.authorized(token);
+    if (!user) {
         conn.close(1008, "Unauthorized");
         return;
     }

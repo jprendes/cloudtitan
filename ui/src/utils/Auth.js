@@ -124,6 +124,7 @@ class Auth extends Observable {
 
     // eslint-disable-next-line class-methods-use-this
     get tokens() {
+        if (!this.#tokens) return [];
         return this.#tokens.slice();
     }
 
