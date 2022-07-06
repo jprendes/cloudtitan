@@ -2,10 +2,8 @@ import { LitElement, css, html } from "lit";
 
 import redBtnStyle from "../utils/redBtnStyle.js";
 
-import "@spectrum-web-components/icons-workflow/icons/sp-icon-paste.js";
-import "@spectrum-web-components/icons-workflow/icons/sp-icon-checkmark.js";
-import "@spectrum-web-components/icons-workflow/icons/sp-icon-delete.js";
 import "@spectrum-web-components/action-button/sp-action-button.js";
+import "@material/mwc-icon";
 
 class CloudtitanToken extends LitElement {
     static styles = css`
@@ -28,13 +26,16 @@ class CloudtitanToken extends LitElement {
         }
 
         #token {
+            display: grid;
+            align-items: center;
+            font-family: "Roboto Mono", monospace;
+            padding: 0 5px;
+        }
+
+        #token-text {
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
-            display: grid;
-            align-items: center;
-            font-family: monospace;
-            padding: 0 5px;
         }
 
         #copy {
@@ -48,6 +49,10 @@ class CloudtitanToken extends LitElement {
 
         #content:hover #delete {
             display: block;
+        }
+
+        mwc-icon {
+            --mdc-icon-size: 16px;
         }
     `;
 
@@ -88,21 +93,21 @@ class CloudtitanToken extends LitElement {
                         selected
                         @click=${() => this.dispatchEvent(new CustomEvent("delete", { detail: this.token }))}
                     >
-                        <sp-icon-delete slot="icon" size="s"></sp-icon-delete>
+                        <mwc-icon slot="icon">delete</mwc-icon>
                     </sp-action-button>
                     <sp-tooltip slot="hover-content">Delete token</sp-tooltip>
                 </overlay-trigger>
                 <div id="token">
-                    ${this.token}
+                    <div id="token-text">${this.token}</div>
                 </div>
                 <overlay-trigger placement="bottom" offset="0" id="copy">
                     <sp-action-button size="s" slot="trigger" quiet
                         @click=${this.#copy}
                     >
                         ${this.feedback ? html`
-                            <sp-icon-checkmark slot="icon" size="s"></sp-icon-checkmark>
+                            <mwc-icon slot="icon">done</mwc-icon>
                         ` : html`
-                            <sp-icon-paste slot="icon" size="s"></sp-icon-paste>
+                            <mwc-icon slot="icon">content_copy</mwc-icon>
                         `}
                     </sp-action-button>
                     <sp-tooltip slot="hover-content">Copy token to clipboard</sp-tooltip>

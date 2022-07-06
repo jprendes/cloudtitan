@@ -8,8 +8,11 @@
         "start": "webpack-dev-server --host 0.0.0.0"
     },
     "dependencies": {
+        "@fontsource/material-icons": "^4.5.4",
         "@fontsource/roboto": "^4.5.7",
+        "@fontsource/roboto-mono": "^4.5.7",
         "@material-icons/svg": "^1.0.28",
+        "@material/mwc-icon": "^0.26.1",
         "@spectrum-web-components/action-button": "^0.8.4",
         "@spectrum-web-components/action-menu": "^0.13.16",
         "@spectrum-web-components/button": "^0.17.4",

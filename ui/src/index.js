@@ -3,6 +3,8 @@ import { html, render } from "lit";
 import "@spectrum-web-components/styles/all-medium-lightest.css";
 import "@spectrum-web-components/theme/sp-theme.js";
 import "@fontsource/roboto";
+import "@fontsource/roboto-mono";
+import "@fontsource/material-icons";
 
 import "./cloudtitan-app.js";
 

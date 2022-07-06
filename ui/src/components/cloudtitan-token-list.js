@@ -1,7 +1,7 @@
 import { LitElement, css, html } from "lit";
 
 import "@spectrum-web-components/action-button/sp-action-button.js";
-import "@spectrum-web-components/icons-workflow/icons/sp-icon-add.js";
+import "@material/mwc-icon";
 import "./cloudtitan-token.js";
 
 class CloudtitanTokenList extends LitElement {
@@ -84,6 +84,10 @@ class CloudtitanTokenList extends LitElement {
         #token-list::-webkit-scrollbar-track {
             background: var(--scrollbar-backgroundm, transparent);
         }
+
+        mwc-icon {
+            --mdc-icon-size: 16px;
+        }
     `;
 
     static properties = {
@@ -112,7 +116,7 @@ class CloudtitanTokenList extends LitElement {
                             selected
                             @click=${() => this.dispatchEvent(new CustomEvent("create"))}
                         >
-                            <sp-icon-add slot="icon" size="s"></sp-icon-add>
+                            <mwc-icon slot="icon">add</mwc-icon>
                         </sp-action-button>
                         <sp-tooltip slot="hover-content">Create new token</sp-tooltip>
                     </overlay-trigger>
