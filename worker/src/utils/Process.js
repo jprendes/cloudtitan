@@ -1,5 +1,5 @@
 import { spawn } from "node-pty";
-import Evented from "./Evented.js";
+import Evented from "cloudtitan-common/events/Evented.js";
 
 class Process extends Evented {
     #child = null;
@@ -11,19 +11,18 @@ class Process extends Evented {
             ...opts,
             stdio: "pipe",
         });
-        this.#child.onExit(() => this.#end?.());
-        this.#exit = new Promise((resolve) => {
-            this.on("end", resolve);
-        });
-        this.#child.onData((data) => this.emit("data", data));
+        this.#child.onExit(this.#onExit);
+        this.#exit = this.once(["exit", "destroy"]);
+        this.#child.onData(this.#onData);
     }
 
-    #end = () => {
+    #onExit = () => {
         this.#child = null;
-        this.emit("end");
-        this.#end = null;
-        this.destroy();
+        this.emit("exit");
+        super.destroy();
     };
+
+    #onData = (data) => this.emit("data", data);
 
     resize(cols, rows) {
         this.#child?.resize(cols - 1, rows - 1);
@@ -39,8 +38,10 @@ class Process extends Evented {
     }
 
     kill(signal = "SIGKILL") {
-        this.#child?.kill(signal);
+        if (!this.#child) return;
+        this.#child.kill(signal);
         this.emit("kill");
+        return this.wait();
     }
 
     write(data) {
@@ -48,8 +49,7 @@ class Process extends Evented {
     }
 
     destroy() {
-        this.#end?.();
-        super.destroy();
+        this.kill("SIGKILL");
     }
 }
 

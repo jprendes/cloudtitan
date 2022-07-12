@@ -1,9 +1,16 @@
-import Evented from "./Evented.js";
+import Evented from "cloudtitan-common/events/Evented.js";
 
 class Watchdog extends Evented {
     static get STOPPED() { return 0; }
     static get TICKING() { return 1; }
     static get ALERTED() { return 2; }
+
+    static fromEvent(target, evts, timeout = 10e3) {
+        const watchdog = new Watchdog(timeout);
+        watchdog.own(target.on(evts, () => watchdog.tick()));
+        watchdog.tick();
+        return watchdog;
+    }
 
     #id = null;
     #status = Watchdog.STOPPED;

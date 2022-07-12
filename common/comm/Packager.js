@@ -1,39 +1,79 @@
 /* eslint-disable camelcase */
-import { unsigned } from "leb128";
+import { signed, unsigned } from "leb128";
+
+import {
+    toArrayBuffer,
+    getTypedArrayType,
+    getTypedViewConstructor,
+} from "./typedArrayUtils.js";
+
+function toBuffer(obj) {
+    return Buffer.from(toArrayBuffer(obj));
+}
 
 function serialize(obj) {
     return serialize_any(obj, new Set());
 }
 
 function makeSized(buffer) {
+    buffer = toBuffer(buffer);
     return Buffer.concat([
         unsigned.encode(buffer.byteLength),
-        Buffer.from(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)),
+        Buffer.from(buffer),
     ]);
 }
+
+const TYPES = {
+    INTEGER: "i",
+    NUMBER: "n",
+    STRING: "s",
+    TRUE: "t",
+    FALSE: "f",
+    UNDEFINED: "u",
+    NULL: "N",
+    ARRAY: "a",
+    MAP: "M",
+    SET: "S",
+    BUFFER: "b",
+    OBJECT: "o",
+};
 
 function serialize_any(obj, visited) {
     const buffers = [];
     if (typeof obj === "number") {
-        buffers.push(Buffer.from("n"));
-        buffers.push(Buffer.from(Float64Array.from([obj]).buffer));
+        // eslint-disable-next-line no-bitwise
+        if ((obj | 0) === obj) {
+            buffers.push(Buffer.from(TYPES.INTEGER));
+            buffers.push(signed.encode(obj));
+        } else {
+            buffers.push(Buffer.from(TYPES.NUMBER));
+            buffers.push(toBuffer(Float64Array.from([obj])));
+        }
     } else if (typeof obj === "string") {
-        buffers.push(Buffer.from("s"));
+        buffers.push(Buffer.from(TYPES.STRING));
         buffers.push(makeSized(Buffer.from(obj)));
     } else if (typeof obj === "boolean") {
-        buffers.push(obj ? Buffer.from("t") : Buffer.from("f"));
-    } else if (!obj) { // null or undefined
-        buffers.push(Buffer.from("u"));
+        buffers.push(obj ? Buffer.from(TYPES.TRUE) : Buffer.from(TYPES.FALSE));
+    } else if (typeof obj === "undefined") {
+        buffers.push(Buffer.from(TYPES.UNDEFINED));
+    } else if (!obj) { // null
+        buffers.push(Buffer.from(TYPES.NULL));
     } else if (Array.isArray(obj)) {
-        const buff = serialize_arr(obj, visited);
-        buffers.push(Buffer.from("a"));
-        buffers.push(buff);
-    } else if (obj.buffer instanceof ArrayBuffer) {
-        buffers.push(Buffer.from("b"));
+        buffers.push(Buffer.from(TYPES.ARRAY));
+        buffers.push(serialize_arr(obj, visited));
+    } else if (obj instanceof Map) {
+        buffers.push(Buffer.from(TYPES.MAP));
+        buffers.push(serialize_arr([...obj], visited));
+    } else if (obj instanceof Set) {
+        buffers.push(Buffer.from(TYPES.SET));
+        buffers.push(serialize_arr([...obj], visited));
+    } else if (ArrayBuffer.isView(obj) || obj instanceof ArrayBuffer) {
+        buffers.push(Buffer.from(TYPES.BUFFER));
+        buffers.push(unsigned.encode(getTypedArrayType(obj)));
         buffers.push(makeSized(obj));
     } else { // object
         const buff = serialize_obj(obj, visited);
-        buffers.push(Buffer.from("o"));
+        buffers.push(Buffer.from(TYPES.OBJECT));
         buffers.push(buff);
     }
 
@@ -68,8 +108,16 @@ function serialize_obj(obj, visited) {
     return Buffer.concat(buffers);
 }
 
-function deserialize_leb(buffer) {
-    const l = unsigned.decode(buffer);
+function deserialize_uleb(buffer) {
+    const l = parseInt(unsigned.decode(buffer), 10);
+    // eslint-disable-next-line no-bitwise
+    while (buffer[0] & 0x80) buffer = buffer.slice(1);
+    buffer = buffer.slice(1);
+    return [l, buffer];
+}
+
+function deserialize_ileb(buffer) {
+    const l = parseInt(signed.decode(buffer), 10);
     // eslint-disable-next-line no-bitwise
     while (buffer[0] & 0x80) buffer = buffer.slice(1);
     buffer = buffer.slice(1);
@@ -86,39 +134,54 @@ function deserialize_any(buffer) {
     const tag = buffer.slice(0, 1).toString();
     const buff = buffer.slice(1);
     switch (tag) {
-    case "n": {
+    case TYPES.INTEGER: {
+        return deserialize_ileb(buff);
+    }
+    case TYPES.NUMBER: {
         return [
             new Float64Array(buff.buffer.slice(buff.byteOffset, buff.byteOffset + 8))[0],
             buff.slice(8),
         ];
     }
-    case "s": {
-        const [l, b] = deserialize_leb(buff);
+    case TYPES.STRING: {
+        const [l, b] = deserialize_uleb(buff);
         return [
             b.slice(0, l).toString(),
             b.slice(l),
         ];
     }
-    case "t": {
+    case TYPES.TRUE: {
         return [true, buff];
     }
-    case "f": {
+    case TYPES.FALSE: {
         return [false, buff];
     }
-    case "u": {
+    case TYPES.UNDEFINED: {
+        return [undefined, buff];
+    }
+    case TYPES.NULL: {
         return [null, buff];
     }
-    case "a": {
+    case TYPES.ARRAY: {
         return deserialize_arr(buff);
     }
-    case "b": {
-        const [l, b] = deserialize_leb(buff);
+    case TYPES.MAP: {
+        const [arr, b] = deserialize_arr(buff);
+        return [new Map(arr), b];
+    }
+    case TYPES.SET: {
+        const [arr, b] = deserialize_arr(buff);
+        return [new Set(arr), b];
+    }
+    case TYPES.BUFFER: {
+        const [t, b] = deserialize_uleb(buff);
+        const [l, bb] = deserialize_uleb(b);
         return [
-            b.slice(0, l),
-            b.slice(l),
+            getTypedViewConstructor(t)(toArrayBuffer(bb.slice(0, l))),
+            bb.slice(l),
         ];
     }
-    case "o": {
+    case TYPES.OBJECT: {
         return deserialize_obj(buff);
     }
     default: {
@@ -128,7 +191,7 @@ function deserialize_any(buffer) {
 }
 
 function deserialize_arr(buffer) {
-    const [l, buff] = deserialize_leb(buffer);
+    const [l, buff] = deserialize_uleb(buffer);
     const result = [];
     let b = buff;
     for (let i = 0; i < l; ++i) {
@@ -140,13 +203,13 @@ function deserialize_arr(buffer) {
 }
 
 function deserialize_obj(buffer) {
-    const [l, buff] = deserialize_leb(buffer);
+    const [l, buff] = deserialize_uleb(buffer);
     const result = {};
     let b = buff;
     for (let i = 0; i < l; ++i) {
         let k_l;
         let val;
-        [k_l, b] = deserialize_leb(b);
+        [k_l, b] = deserialize_uleb(b);
         const key = b.slice(0, k_l).toString();
         [val, b] = deserialize_any(b.slice(k_l));
         result[key] = val;

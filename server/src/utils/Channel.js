@@ -1,96 +1,93 @@
-import Evented from "./Evented.js";
+import Evented from "cloudtitan-common/events/Evented.js";
 
 class Channel extends Evented {
     #backlog = [];
+    #running = [];
+
     get pending() { return this.#backlog.length; }
+    get running() { return this.#backlog.length; }
 
     push(task) {
         if (this.closed) throw new Error("Channel is closed");
         this.#backlog.push(task);
-        this.emit("push");
         this.emit("task");
     }
 
     unshift(task) {
-        if (this.closed) throw new Error("Channel is closed");
+        // Unshifting is allowed even on closed channels.
         this.#backlog.unshift(task);
-        this.emit("unshift");
         this.emit("task");
     }
 
     #closed = false;
     get closed() { return this.#closed; }
     get ended() { return this.closed && this.pending === 0; }
-    close() {
+
+    #closePromise = null;
+    async #close() {
         this.#closed = true;
         this.emit("close");
-        if (this.ended) this.#end();
+        while (this.pending > 0 || this.running > 0) {
+            // eslint-disable-next-line no-await-in-loop
+            await this.once(["work", "task"]);
+        }
+        this.emit("end");
+        super.destroy();
+    }
+
+    close() {
+        this.#closePromise = this.#closePromise || this.#close();
+        return this.#closePromise;
     }
 
     position(task) {
-        return this.#backlog.indexOf(task);
+        const inBacklog = 1 + this.#backlog.indexOf(task);
+        if (inBacklog) return inBacklog;
+        if (this.#running.includes(task)) return 0;
+        return NaN;
     }
 
     remove(task) {
         this.#backlog = this.#backlog.filter((t) => t !== task);
     }
 
-    #next() {
-        if (this.pending > 0) {
-            const elem = {
-                value: this.#backlog.shift(),
-                done: false,
-            };
-            if (this.ended) this.#end();
-            return elem;
-        }
-        if (this.closed) {
-            this.#workers -= 1;
-            return {
-                done: true,
-            };
-        }
-        return null;
-    }
-
-    #end = () => {
-        this.emit("end");
-        super.destroy();
-    };
-
     #workers = 0;
     get workers() { return this.#workers; }
 
-    get tasks() {
+    tasks() {
+        const aborter = new Evented();
+        aborter.aborted = false;
+        this.on(["task", "end"], (evt, ...args) => aborter.emit(evt, ...args));
+        const that = this;
         return {
-            [Symbol.asyncIterator]: () => {
-                this.#workers += 1;
-                return {
-                    next: () => {
-                        let elem = this.#next();
-                        if (elem) {
-                            this.emit("tick");
-                            return elem;
+            async* [Symbol.asyncIterator]() {
+                that.#workers += 1;
+                that.emit("worker");
+                try {
+                    while (true) {
+                        if (aborter.aborted) {
+                            break;
+                        } else if (that.pending === 0) {
+                            // eslint-disable-next-line no-await-in-loop
+                            const [evt] = await aborter.once(["task", "end", "abort"]);
+                            if (evt === "abort" || evt === "end") break;
+                        } else {
+                            const task = that.#backlog.shift();
+                            that.#running.push(task);
+                            that.emit("tick");
+                            yield task;
+                            that.#running.filter((t) => t !== task);
+                            that.emit("work");
                         }
-                        this.emit("starved");
-                        return new Promise((resolve) => {
-                            const listener = this.on(["task", "close"], () => {
-                                elem = this.#next();
-                                if (elem) {
-                                    listener.remove();
-                                    this.emit("tick");
-                                    resolve(elem);
-                                }
-                            });
-                        });
-                    },
-                    return: () => {
-                        // This will be reached if the consumer called
-                        //  'break' or 'return' early in the loop.
-                        this.#workers -= 1;
-                        return { done: true };
-                    },
-                };
+                    }
+                } finally {
+                    that.#workers -= 1;
+                    that.emit("worker");
+                }
+            },
+            abort() {
+                aborter.aborted = true;
+                aborter.emit("abort");
             },
         };
     }

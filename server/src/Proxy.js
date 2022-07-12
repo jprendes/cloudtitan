@@ -33,7 +33,7 @@ class Proxy {
     onWsError(fcn) {
         if (!fcn) {
             fcn = (req, socket, head, { err }) => {
-                console.log(err);
+                console.error(err);
                 socket.destroy();
             };
         }
@@ -61,7 +61,7 @@ class Proxy {
         HttpServer.wait(socket).then(resolve);
         req.url = options.path || req.url;
         this.#proxy.ws(req, socket, head, options, async (err) => {
-            console.log(err);
+            console.error(err);
             await onError(req, socket, head, { err });
             resolve();
         });

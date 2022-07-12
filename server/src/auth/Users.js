@@ -1,8 +1,8 @@
 import { generateKey } from "crypto";
+import Evented from "cloudtitan-common/events/Evented.js";
 
 import GoogleOAuth2 from "./GoogleOAuth2.js";
 
-import Evented from "../utils/Evented.js";
 import DB from "../DB.js";
 import { GAPI_CLIENT_ID } from "../config.js";
 
@@ -21,7 +21,7 @@ const uuid = async () => {
         });
     });
     return key.export().toString("hex");
-}
+};
 
 class Users extends Evented {
     #byUuid = new Map();
@@ -51,6 +51,7 @@ class Users extends Evented {
         this.once("loaded", () => callback(this));
     };
 
+    // eslint-disable-next-line no-shadow
     byUuid(uuid) {
         return this.#byUuid.get(uuid) || null;
     }

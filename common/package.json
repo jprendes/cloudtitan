@@ -1,0 +1,20 @@
+{
+  "name": "cloudtitan-common",
+  "version": "1.0.0",
+  "description": "cloudtitan common",
+  "author": "Jorge Prendes",
+  "license": "MIT",
+  "dependencies": {
+    "leb128": "^0.0.5",
+    "uuid": "^8.3.2"
+  },
+  "peerDependencies": {
+    "ws": "^8.8.0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "eslint": "^8.19.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0"
+  }
+}

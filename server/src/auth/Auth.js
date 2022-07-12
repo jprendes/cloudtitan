@@ -1,6 +1,7 @@
 import { STATUS_CODES, IncomingMessage } from "http";
+import Evented from "cloudtitan-common/events/Evented.js";
+
 import * as cookie from "../utils/cookie.js";
-import Evented from "../utils/Evented.js";
 
 import Users from "./Users.js";
 
