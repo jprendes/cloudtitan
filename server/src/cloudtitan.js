@@ -7,7 +7,9 @@ import { v4 as uuidv4 } from "uuid";
 import HttpServer from "./HttpServer.js";
 
 import {
-    UI_ROOT, UI_HOST, UI_PORT, HTTPS, LISTEN, GAPI_CLIENT_ID,
+    UI_ROOT, UI_HOST, UI_PORT,
+    DL_ROOT, DL_HOST, DL_PORT,
+    HTTPS, LISTEN, GAPI_CLIENT_ID,
 } from "./config.js";
 
 import Api from "./session/Api.js";
@@ -34,6 +36,13 @@ if (UI_ROOT) {
     ui = Static.fromRoot(UI_ROOT);
 } else {
     ui = new Proxy({ target: { host: UI_HOST, port: UI_PORT } });
+}
+
+let dl;
+if (DL_HOST) {
+    dl = new Proxy({ target: { host: DL_HOST, port: DL_PORT } });
+} else {
+    dl = Static.fromRoot(DL_ROOT);
 }
 
 const server = new HttpServer({
@@ -95,6 +104,11 @@ server.ws("/worker", async (conn, req) => {
 server.upgrade("/ws", (req, socket, head) => ui.serve(req, socket, head, {}));
 
 server.http("~/auth/:path(.*)?", (req, res) => auth.serve(req, res));
+
+server.http("~/dl/:path(.*)", (req, res, { path }) => {
+    session(req, res);
+    return dl.serve(req, res, { path: `/${path}` });
+});
 
 server.http("~/:path(.*)", (req, res) => {
     session(req, res);

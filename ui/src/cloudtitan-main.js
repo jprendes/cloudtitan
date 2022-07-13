@@ -22,9 +22,10 @@ class CloudtitanMain extends LitElement {
 
         #header {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 1fr auto auto;
             grid-template-rows: 100%;
             padding: 10px 20px;
+            grid-gap: 10px;
         }
 
         #title {
@@ -46,6 +47,14 @@ class CloudtitanMain extends LitElement {
             max-width: 500px;
             padding: 10px;
         }
+
+        #download-client {
+            align-self: center;
+        }
+
+        mwc-icon {
+            --mdc-icon-size: 16px;
+        }
     `;
 
     constructor() {
@@ -57,12 +66,28 @@ class CloudtitanMain extends LitElement {
         this.requestUpdate();
     };
 
+    #downloadClient = () => {
+        window.open("/dl/cloudtitan");
+    }
+
     // eslint-disable-next-line class-methods-use-this
     render() {
         return html`
             <div id="content">
                 <div id="header">
                     <div id="title">CloudTitan</div>
+                    <overlay-trigger placement="bottom" offset="0" id="download-client">
+                        <sp-action-button size="s" quiet slot="trigger"
+                            quiet
+                            emphasized
+                            selected
+                            @click=${this.#downloadClient}
+                        >
+                            <mwc-icon slot="icon">cloud_download</mwc-icon>
+                            client
+                        </sp-action-button>
+                        <sp-tooltip slot="hover-content">Download cloudtitan client</sp-tooltip>
+                    </overlay-trigger>
                     <cloudtitan-login></cloudtitan-login>
                 </div>
                 <div id="body">
