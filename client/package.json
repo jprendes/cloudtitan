@@ -1,20 +1,29 @@
 {
-  "name": "cloudtitan-client",
-  "version": "1.0.0",
-  "description": "cloudtitan client",
-  "main": "cloudtitan.js",
-  "author": "Jorge Prendes",
-  "license": "MIT",
-  "dependencies": {
-    "cloudtitan-common": "file:../common",
-    "command-line-args": "^5.2.1",
-    "command-line-usage": "^6.1.3",
-    "ws": "^8.8.0"
-  },
-  "type": "module",
-  "devDependencies": {
-    "eslint": "^8.19.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.26.0"
-  }
+    "name": "cloudtitan-client",
+    "version": "1.0.0",
+    "description": "cloudtitan client",
+    "main": "./src/cloudtitan.js",
+    "author": "Jorge Prendes",
+    "license": "MIT",
+    "scripts": {
+        "prebuild": "rimraf dist build",
+        "build": "webpack",
+        "postbuild": "pkg build/cloudtitan.js -C Brotli -t node16-linux-x64 -o dist/cloudtitan"
+    },
+    "dependencies": {
+        "cloudtitan-common": "file:../common",
+        "command-line-args": "^5.2.1",
+        "command-line-usage": "^6.1.3",
+        "ws": "^8.8.0"
+    },
+    "type": "module",
+    "devDependencies": {
+        "eslint": "^8.19.0",
+        "eslint-config-airbnb-base": "^15.0.0",
+        "eslint-plugin-import": "^2.26.0",
+        "pkg": "^5.8.0",
+        "rimraf": "^3.0.2",
+        "webpack": "^5.73.0",
+        "webpack-cli": "^4.10.0"
+    }
 }
