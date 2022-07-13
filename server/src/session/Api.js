@@ -60,7 +60,7 @@ class Api extends Evented {
     #size = null;
     resize(cols, rows) {
         this.#size = [clampInt(cols, 20, 300), clampInt(rows, 6, 100)];
-        this.#session?.resize(this.#size);
+        this.#session?.resize(...this.#size);
     }
 
     get position() {
@@ -77,7 +77,7 @@ class Api extends Evented {
         try {
             this.#session = session;
             await this.#session.ready();
-            if (this.#size) this.#session.resize(this.#size);
+            if (this.#size) this.#session.resize(...this.#size);
             this.#session.on(["console", "command", "prompt", "error"], (evt, ...args) => this.emit(evt, ...args));
             await this.#session.start(this.#binaries, this.commands.slice(), this.#timeout);
             await this.#session.destroy();
