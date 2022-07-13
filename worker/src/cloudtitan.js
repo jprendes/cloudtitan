@@ -25,17 +25,17 @@ if (opts.help) {
 
 if (!opts.authToken) {
     console.error("Error: Missing auth token.");
-    console.exit(1);
+    process.exit(1);
 }
 
 if (!opts.host) {
     console.error("Error: Missing host.");
-    console.exit(1);
+    process.exit(1);
 }
 
 const sock = await Socket.connect(`${opts.host}/worker`, {
     headers: { "Auth-Token": opts.authToken },
-    rejectUnauthorized: !opts.selfsigned,
+    rejectUnauthorized: !opts.selfSigned,
 });
 
 sock.on("channel", (name, channel) => {

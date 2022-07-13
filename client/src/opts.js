@@ -17,6 +17,12 @@ const options = [{
     typeLabel: "{underline file[@offset]}",
     description: "The firmware file to load in the FPGA.",
 }, {
+    name: "host",
+    alias: "H",
+    type: String,
+    typeLabel: "{underline address}",
+    description: "The address of the cloudtitan server.",
+}, {
     name: "auth-token",
     alias: "t",
     type: String,
@@ -28,44 +34,17 @@ const options = [{
     type: Boolean,
     description: "This help message.",
 }, {
-    name: "host",
-    alias: "H",
-    type: String,
-    typeLabel: "{underline address}",
-    description: "The address of the cloudtitan server.",
-}, {
     name: "no-tls",
     type: Boolean,
     description: "Disable TLS in the network connection.",
 }, {
-    name: "progress",
-    alias: "p",
-    type: (val) => ["1", "true", "on", "t", "y", "yes"].includes(val.toLowerCase()),
-    typeLabel: "{underline on|off}",
-    description: "Enable or disable the progressbar for queueing, loading bitstream and firmware.\nDefaults to true if the output is a TTY.",
-}, {
-    name: "queue",
-    alias: "q",
-    type: (val) => ["1", "true", "on", "t", "y", "yes"].includes(val.toLowerCase()),
-    typeLabel: "{underline on|off}",
-    description: "Enable or disable showing the job positing in the job queue.\nDefaults to the value of the progress option.",
-}, {
-    name: "selfsigned",
-    alias: "s",
+    name: "self-signed",
     type: Boolean,
     description: "Accept self signed certificates from TLS servers.",
 }];
 
 function parse() {
     const opts = cliArgs(options, { camelCase: true });
-
-    if (![true, false].includes(opts.progress)) {
-        opts.progress = stdout.isTTY;
-    }
-
-    if (![true, false].includes(opts.queue)) {
-        opts.queue = opts.progress;
-    }
 
     opts.authToken = opts.authToken || process.env.AUTH_TOKEN;
     opts.host = opts.host || process.env.CLOUDTITAN_HOST;
