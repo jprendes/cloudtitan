@@ -34,7 +34,13 @@ const duration = (t) => {
 
 const { stdout, stderr } = process;
 
-const opts = parse();
+let opts = null;
+try {
+    opts = parse();
+} catch (err) {
+    console.error(err.message);
+    process.exit(1);
+}
 
 if (opts.help) {
     usage();
