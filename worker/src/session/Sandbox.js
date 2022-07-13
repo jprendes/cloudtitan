@@ -8,7 +8,7 @@ import Owner from "cloudtitan-common/events/Owner.js";
 
 import { v4 as uuidv4 } from "uuid";
 import Process from "../utils/Process.js";
-import { ROOT } from "../config.js";
+import { ROOT, BW_RO_BINDS } from "../config.js";
 
 const OPENTITANTOOL_BIN = "opentitantool";
 const BUBBLEWRAP_BIN = "bwrap";
@@ -18,14 +18,7 @@ const BUBBLEWRAP_ARGS = [
     "--die-with-parent",
     "--cap-drop", "ALL",
     "--dev-bind", "/dev", "/dev",
-    "--ro-bind", "/run/udev", "/run/udev",
-    "--ro-bind", "/sys/bus/usb", "/sys/bus/usb",
-    "--ro-bind", "/sys/class/tty", "/sys/class/tty",
-    "--ro-bind", "/sys/devices", "/sys/devices",
-    "--ro-bind", "/usr", "/usr",
-    "--ro-bind", "/bin", "/bin",
-    "--ro-bind", "/lib", "/lib",
-    "--ro-bind", "/lib64", "/lib64",
+    ...BW_RO_BINDS.flatMap((path) => ["--ro-bind", path, path]),
     "--tmpfs", "/tmp",
     "--proc", "/proc",
     "--setenv", "TERM", "xterm-256color",
@@ -72,7 +65,6 @@ class Sandbox extends Owner {
             "--ro-bind", `${ROOT}/sandbox/opentitantool`, "/opentitantool",
             "--ro-bind", this.#root, "/working",
             "--chdir", "/working",
-            "--ro-bind", "/usr/games", "/usr/games",
             // "echo",
             OPENTITANTOOL_BIN,
             "--interface=cw310",

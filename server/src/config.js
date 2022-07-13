@@ -1,7 +1,14 @@
 import { dirname, join, normalize } from "path";
 import { fileURLToPath } from "url";
 
-const ROOT = normalize(join(dirname(fileURLToPath(import.meta.url)), ".."));
+let root;
+if (typeof __dirname === "undefined") {
+    root = normalize(join(dirname(fileURLToPath(import.meta.url)), ".."));
+} else {
+    root = normalize(join(__dirname, ".."));
+}
+
+const ROOT = root;
 
 const { env } = process;
 
