@@ -8,6 +8,7 @@ import Socket from "cloudtitan-common/comm/Socket.js";
 import { IpcClient } from "cloudtitan-common/comm/Ipc.js";
 
 import { parse, usage } from "./opts.js";
+import { basename } from "path";
 
 process.on("unhandledRejection", (error) => {
     console.error("Unhandled Promise Rejection", error);
@@ -39,6 +40,7 @@ try {
     opts = parse();
 } catch (err) {
     console.error(err.message);
+    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
     process.exit(1);
 }
 
@@ -48,12 +50,14 @@ if (opts.help) {
 }
 
 if (!opts.authToken) {
-    console.error("Error: Missing auth token.");
+    console.error("Error: Missing auth token");
+    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
     process.exit(1);
 }
 
 if (!opts.host) {
-    console.error("Error: Missing host.");
+    console.error("Error: Missing host");
+    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
     process.exit(1);
 }
 
