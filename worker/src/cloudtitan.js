@@ -1,5 +1,7 @@
 #!/usr/bin/node
 
+import { basename } from "path";
+
 import Socket from "cloudtitan-common/comm/Socket.js";
 import { IpcHost } from "cloudtitan-common/comm/Ipc.js";
 
