@@ -17,6 +17,12 @@ const options = [{
     typeLabel: "{underline file[@offset]}",
     description: "The firmware file to load in the FPGA.",
 }, {
+    name: "timeout",
+    alias: "t",
+    type: Number,
+    typeLabel: "{underline seconds}",
+    description: "Stop session after [seconds] without activity.",
+}, {
     name: "host",
     alias: "H",
     type: String,
@@ -24,7 +30,7 @@ const options = [{
     description: "The address of the cloudtitan server.",
 }, {
     name: "auth-token",
-    alias: "t",
+    alias: "a",
     type: String,
     typeLabel: "{underline token}",
     description: "Your identification token.",
@@ -44,10 +50,14 @@ const options = [{
 }];
 
 function parse() {
-    const opts = cliArgs(options, { camelCase: true });
+    let opts = cliArgs(options, { camelCase: true });
 
-    opts.authToken = opts.authToken || process.env.AUTH_TOKEN;
-    opts.host = opts.host || process.env.CLOUDTITAN_HOST;
+    opts = {
+        authToken: process.env.AUTH_TOKEN,
+        host: process.env.CLOUDTITAN_HOST,
+        timeout: 2,
+        ...opts,
+    }
 
     if (opts.noTls) {
         opts.host = opts.host && `ws://${opts.host}`;

@@ -61,6 +61,20 @@ if (!opts.host) {
     process.exit(1);
 }
 
+if (opts.timeout === null || isNaN(opts.timeout) || opts.timeout <= 0) {
+    console.error("Error: timeout must be a positive integer");
+    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
+    process.exit(1);
+}
+
+if (opts.timeout > Number.MAX_SAFE_INTEGER) {
+    console.error(`Error: timeout must be smaller than ${Number.MAX_SAFE_INTEGER}`);
+    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
+    process.exit(1);
+}
+
+opts.timeout = Math.round(opts.timeout);
+
 const compress = (data) => new Promise((resolve, reject) => zlib.gzip(data, {
     chunkSize: 32 * 1024,
     // level: 9,
@@ -175,7 +189,7 @@ api.commands = [
     ["load-bitstream", await bitstream],
     ["console", "2"],
     ["bootstrap", ...await firmware],
-    ["console", "2"],
+    ["console", opts.timeout.toString(10)],
 ];
 
 let queuedTime = new Date();
