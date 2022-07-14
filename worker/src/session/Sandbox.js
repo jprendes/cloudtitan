@@ -1,8 +1,8 @@
-import { mkdir, writeFile } from "fs/promises";
 import { basename } from "path";
 import { gunzip } from "zlib";
-
-import rimraf from "rimraf";
+import {
+    ensureDir, copy, writeFile, remove,
+} from "fs-extra";
 
 import Owner from "cloudtitan-common/events/Owner.js";
 
@@ -62,10 +62,9 @@ class Sandbox extends Owner {
             "--setenv", "PATH", "/usr/local/bin:/usr/bin:/usr/local/sbin:/bin:/opentitantool/bin",
             "--setenv", "HOME", "/working",
             "--setenv", "XDG_CONFIG_HOME", "/opentitantool/config",
-            "--ro-bind", `${ROOT}/sandbox/opentitantool`, "/opentitantool",
-            "--ro-bind", this.#root, "/working",
+            "--ro-bind", `${this.#root}/opentitantool`, "/opentitantool",
+            "--ro-bind", `${this.#root}/working`, "/working",
             "--chdir", "/working",
-            // "echo",
             OPENTITANTOOL_BIN,
             "--interface=cw310",
             "--conf=/opentitantool/config/opentitantool/config.d/opentitan_cw310.json",
@@ -78,7 +77,9 @@ class Sandbox extends Owner {
         // TODO: Re-enable this
         // await this.#reloadusb();
 
-        await mkdir(this.#root);
+        await ensureDir(`${this.#root}/working`);
+        await copy(`${ROOT}/sandbox/opentitantool`, `${this.#root}/opentitantool`);
+
         return this;
     };
 
@@ -100,7 +101,7 @@ class Sandbox extends Owner {
         if (this.#killed) return;
         this.#killed = true;
         await Promise.all([...this.#processes.values()].map((process) => process.kill()));
-        rimraf(this.#root, () => {});
+        await remove(this.#root);
         this.#processes = new Set();
         super.destroy();
     }
@@ -111,7 +112,7 @@ class Sandbox extends Owner {
 
     async writeFile(name, data) {
         this.#ensureAlive();
-        await writeFile(`${this.#root}/${basename(name)}`, await decompress(await data));
+        await writeFile(`${this.#root}/working/${basename(name)}`, await decompress(await data));
     }
 
     writeFiles(binaries) {
