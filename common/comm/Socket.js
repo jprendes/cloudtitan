@@ -1,10 +1,12 @@
 import WebSocket from "ws";
 import { serialize, deserialize } from "./Packager.js";
 import Evented from "../events/Evented.js";
+import Watchdog from "../utils/Watchdog.js";
 
 class Socket extends Evented {
     #ws = null;
     #closed = false;
+    #watchdog = null;
 
     static fromWebSocket(ws) {
         if (ws.readyState === ws.CLOSED || ws.readyState === ws.CLOSING) {
@@ -16,9 +18,6 @@ class Socket extends Evented {
         ws.on("close", (code, reason) => {
             emitter.emit("close", code, reason?.toString());
             emitter.destroy();
-        });
-        ws.on("open-channel", (name) => {
-            emitter.emit("open-channel", name);
         });
         emitter.send = (...args) => ws.send(serialize(args));
         emitter.close = (...args) => {
@@ -55,6 +54,13 @@ class Socket extends Evented {
         this.#ws.on("open-channel", (name) => {
             this.channel(name);
         });
+        this.#ws.on("ping", (...args) => {
+            this.emit("ping", ...args);
+            this.#ws.send("pong", ...args);
+        });
+        this.#ws.on("pong", (...args) => {
+            this.emit("pong", ...args);
+        });
     }
 
     get closed() { return this.#closed; }
@@ -71,6 +77,18 @@ class Socket extends Evented {
     once(...args) {
         this.#ensureOpen();
         return super.once(...args);
+    }
+
+    watchdog(timeout = 30e3) {
+        this.#watchdog?.remove();
+        this.#watchdog = null;
+        if (timeout === 0) return;
+        this.#watchdog = Watchdog.forSocket(this, timeout);
+    }
+
+    ping() {
+        this.#ensureOpen();
+        this.#ws.send("ping");
     }
 
     send(...args) {

@@ -43,6 +43,9 @@ const sock = await Socket.connect(`${opts.host}/worker`, {
     rejectUnauthorized: !opts.selfSigned,
 });
 
+// set a watchdog time higher than the server's 30s
+sock.watchdog(60e3);
+
 sock.on("channel", (name, channel) => {
     const session = new Session();
     // eslint-disable-next-line no-new

@@ -95,6 +95,9 @@ const sock = await Socket.connect(`${opts.host}/client`, {
     rejectUnauthorized: !opts.selfSigned,
 });
 
+// set a watchdog time higher than the server's 30s
+sock.watchdog(60e3);
+
 const api = new IpcClient(sock).proxy();
 
 if (stdout.isTTY) {

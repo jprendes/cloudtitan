@@ -1,8 +1,8 @@
 /* eslint-disable no-await-in-loop */
 import Evented from "cloudtitan-common/events/Evented.js";
 import Owner from "cloudtitan-common/events/Owner.js";
+import Watchdog from "cloudtitan-common/utils/Watchdog.js";
 
-import Watchdog from "../utils/Watchdog.js";
 import Sandbox from "./Sandbox.js";
 
 class Session extends Evented {

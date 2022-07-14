@@ -60,6 +60,8 @@ server.ws("/client", async (conn, req) => {
 
     try {
         const sock = Socket.fromWebSocket(conn);
+        sock.watchdog(30e3);
+
         const api = new Api(queue, 120e3);
         const apiIpc = new IpcHost(sock, api);
 
@@ -80,6 +82,7 @@ server.ws("/worker", async (conn, req) => {
 
     try {
         const sock = Socket.fromWebSocket(conn);
+        sock.watchdog(30e3);
 
         const tasks = queue.tasks();
         sock.on("close", () => tasks.abort());
