@@ -3,12 +3,32 @@ import { serialize, deserialize } from "./Packager.js";
 import Evented from "../events/Evented.js";
 import Watchdog from "../utils/Watchdog.js";
 
+function setupWatchdog(ws, emitter, timeout) {
+    // Ensure there's activity in the socket every timeout / 2 time
+    const activity = new Watchdog(timeout / 2);
+    ws.on("ping", () => activity.tick());
+    ws.on("pong", () => activity.tick());
+    ws.on("message", () => activity.tick());
+    activity.on("alert", () => ws.ping());
+    activity.tick();
+    
+    // Terminate the socket if there's no activity in over timeout time
+    const terminate = Watchdog.fromEvent(activity, "tick", timeout);
+    terminate.on("alert", () => {
+        emitter.emit("close", 1002, "Ping timeout");
+        ws.terminate();
+    });
+
+    emitter.own(activity);
+    emitter.own(terminate);
+}
+
 class Socket extends Evented {
     #ws = null;
     #closed = false;
     #watchdog = null;
 
-    static fromWebSocket(ws) {
+    static fromWebSocket(ws, { timeout = 30e3 } = {}) {
         if (ws.readyState === ws.CLOSED || ws.readyState === ws.CLOSING) {
             throw new Error("WebSocker is closing or already closed");
         }
@@ -25,6 +45,8 @@ class Socket extends Evented {
             ws.close(...args);
         };
 
+        setupWatchdog(ws, emitter, timeout);
+
         if (ws.readyState === ws.OPEN) {
             return new Socket(emitter);
         }
@@ -35,9 +57,9 @@ class Socket extends Evented {
         });
     }
 
-    static connect(url, opts = {}) {
+    static connect(url, { timeout = 30e3, ...opts } = {}) {
         const ws = new WebSocket(url, opts);
-        return Socket.fromWebSocket(ws);
+        return Socket.fromWebSocket(ws, { timeout });
     }
 
     constructor(ws) {
@@ -77,13 +99,6 @@ class Socket extends Evented {
     once(...args) {
         this.#ensureOpen();
         return super.once(...args);
-    }
-
-    watchdog(timeout = 30e3) {
-        this.#watchdog?.remove();
-        this.#watchdog = null;
-        if (timeout === 0) return;
-        this.#watchdog = Watchdog.forSocket(this, timeout);
     }
 
     ping() {

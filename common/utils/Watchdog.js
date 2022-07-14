@@ -12,28 +12,6 @@ class Watchdog extends Evented {
         return watchdog;
     }
 
-    static forSocket(socket, timeout = 30e3) {
-        // Ensure there's activity in the socket every timeout / 2 time
-        const activity = Watchdog.fromEvent(socket, ["ping", "pong", "message"], timeout / 2);
-        activity.on("alert", () => socket.ping());
-        
-        // Terminate the socket if there's no activity in over timeout time
-        const terminate = Watchdog.fromEvent(activity, "tick", timeout);
-        terminate.on("alert", () => conn.terminate());
-
-        socket.own(activity);
-        socket.own(terminate);
-
-        return {
-            remove: () => {
-                socket.release(activity);
-                activity.destroy();
-                socket.release(terminate);
-                terminate.destroy();
-            }
-        }
-    }
-
     #id = null;
     #status = Watchdog.STOPPED;
 

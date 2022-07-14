@@ -93,10 +93,9 @@ function write(f, ...data) {
 const sock = await Socket.connect(`${opts.host}/client`, {
     headers: { "Auth-Token": opts.authToken },
     rejectUnauthorized: !opts.selfSigned,
+    // set a watchdog timeout higher than the server's 30s
+    timeout: 60e3,
 });
-
-// set a watchdog time higher than the server's 30s
-sock.watchdog(60e3);
 
 const api = new IpcClient(sock).proxy();
 
