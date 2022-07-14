@@ -16,7 +16,7 @@ const UI_ROOT = env.UI_ROOT || "";
 const UI_HOST = env.UI_HOST || "localhost";
 const UI_PORT = parseInt(env.UI_PORT, 10) || 8088;
 
-const DL_ROOT = env.DL_ROOT || normalize(join(ROOT, "..", "client", "dist"));
+const DL_ROOT = env.DL_ROOT || normalize(join(ROOT, "..", "dist"));
 const DL_HOST = env.DL_HOST || "";
 const DL_PORT = 80;
 

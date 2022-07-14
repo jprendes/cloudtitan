@@ -7,9 +7,11 @@
     "author": "Jorge Prendes",
     "license": "MIT",
     "scripts": {
-        "prebuild": "rimraf dist build",
-        "build": "webpack",
-        "postbuild": "pkg ./package.json -C Brotli -t node16-linux-x64 -o dist/cloudtitan"
+        "build": "run-s build:clean build:bundle build:package build:gzip",
+        "build:clean": "rimraf build ../dist/cloudtitan-worker ../dist/cloudtitan-worker.gz",
+        "build:bundle": "webpack",
+        "build:package": "pkg ./package.json -C Brotli -t node16-linux-x64 -o ../dist/cloudtitan-worker",
+        "build:gzip": "gzip -k ../dist/cloudtitan-worker"
     },
     "pkg": {
         "assets": [
@@ -33,6 +35,7 @@
         "eslint-config-airbnb-base": "^15.0.0",
         "eslint-plugin-import": "^2.26.0",
         "node-loader": "^2.0.0",
+        "npm-run-all": "^4.1.5",
         "pkg": "^5.8.0",
         "rimraf": "^3.0.2",
         "webpack": "^5.73.0",
