@@ -1,6 +1,8 @@
 import { LitElement, css, html } from "lit";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 
 import auth from "./utils/Auth.js";
+import favicon from "../favicon.svg";
 
 import "@spectrum-web-components/progress-circle/sp-progress-circle.js";
 import "./components/cloudtitan-login.js";
@@ -22,7 +24,7 @@ class CloudtitanMain extends LitElement {
 
         #header {
             display: grid;
-            grid-template-columns: 1fr auto auto;
+            grid-template-columns: 40px 1fr auto auto;
             grid-template-rows: 100%;
             padding: 10px 20px;
             grid-gap: 10px;
@@ -66,15 +68,17 @@ class CloudtitanMain extends LitElement {
         this.requestUpdate();
     };
 
+    // eslint-disable-next-line class-methods-use-this
     #downloadClient = () => {
         window.open("/dl/cloudtitan");
-    }
+    };
 
     // eslint-disable-next-line class-methods-use-this
     render() {
         return html`
             <div id="content">
                 <div id="header">
+                    ${unsafeHTML(favicon)}
                     <div id="title">CloudTitan</div>
                     <overlay-trigger placement="bottom" offset="0" id="download-client">
                         <sp-action-button size="s" quiet slot="trigger"

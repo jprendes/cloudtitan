@@ -23,6 +23,7 @@ render(html`
             margin: 0;
             overflow: auto;
             background: #f3f3f3;
+            font-family: "Roboto", sans-serif
         }
         sp-theme {
             display: contents;
