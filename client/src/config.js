@@ -23,6 +23,5 @@ const DEFAULTS = {
 export {
     // eslint-disable-next-line import/prefer-default-export
     ROOT,
-    BW_RO_BINDS,
     DEFAULTS,
 };
