@@ -1,8 +1,6 @@
 import { basename } from "path";
 import { gunzip } from "zlib";
-import {
-    ensureDir, copy, writeFile, remove,
-} from "fs-extra";
+import fse from "fs-extra";
 
 import Owner from "cloudtitan-common/events/Owner.js";
 
@@ -77,8 +75,8 @@ class Sandbox extends Owner {
         // TODO: Re-enable this
         // await this.#reloadusb();
 
-        await ensureDir(`${this.#root}/working`);
-        await copy(`${ROOT}/sandbox/opentitantool`, `${this.#root}/opentitantool`);
+        await fse.ensureDir(`${this.#root}/working`);
+        await fse.copy(`${ROOT}/sandbox/opentitantool`, `${this.#root}/opentitantool`);
 
         return this;
     };
@@ -101,7 +99,7 @@ class Sandbox extends Owner {
         if (this.#killed) return;
         this.#killed = true;
         await Promise.all([...this.#processes.values()].map((process) => process.kill()));
-        await remove(this.#root);
+        await fse.remove(this.#root);
         this.#processes = new Set();
         super.destroy();
     }
@@ -112,7 +110,7 @@ class Sandbox extends Owner {
 
     async writeFile(name, data) {
         this.#ensureAlive();
-        await writeFile(`${this.#root}/working/${basename(name)}`, await decompress(await data));
+        await fse.writeFile(`${this.#root}/working/${basename(name)}`, await decompress(await data));
     }
 
     writeFiles(binaries) {

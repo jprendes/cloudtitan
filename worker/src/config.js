@@ -1,7 +1,7 @@
-import { readJson } from "fs-extra";
 import { dirname, join, normalize } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
+import fse from "fs-extra";
 
 let root;
 if (typeof __dirname === "undefined") {
@@ -12,8 +12,8 @@ if (typeof __dirname === "undefined") {
 
 const ROOT = root;
 
-const embeddedDefaults = await readJson(join(ROOT, "assets", "cloudtitan.json")).catch(() => ({}));
-const userDefaults = await readJson(join(homedir(), "cloudtitan.json")).catch(() => ({}));
+const embeddedDefaults = await fse.readJson(join(ROOT, "assets", "cloudtitan.json")).catch(() => ({}));
+const userDefaults = await fse.readJson(join(homedir(), "cloudtitan.json")).catch(() => ({}));
 
 const DEFAULTS = {
     ...embeddedDefaults,
