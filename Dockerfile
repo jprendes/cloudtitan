@@ -28,8 +28,9 @@ RUN mv /tmp/build/dist/* $DL_ROOT/
 
 RUN rm -Rf /tmp/build
 
+COPY common /common
 COPY server /server
-RUN cd /server && \
-    npm i --omit=dev
+RUN npm --prefix /common i --omit=dev && \
+    npm --prefix /server i --omit=dev
 
 ENTRYPOINT pm2-runtime start /server/src/cloudtitan.js
