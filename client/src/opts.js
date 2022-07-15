@@ -25,7 +25,7 @@ const options = [{
     typeLabel: "{underline seconds}",
     description: "Stop session after [seconds] without activity.",
     defaultValue: 2,
-    defaultValue: DEFAULTS.timeout,
+    defaultValue: DEFAULTS.timeout || 2,
 }, {
     name: "host",
     alias: "H",
