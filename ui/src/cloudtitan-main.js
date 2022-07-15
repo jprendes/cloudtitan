@@ -7,6 +7,7 @@ import favicon from "../favicon.svg";
 import "@spectrum-web-components/progress-circle/sp-progress-circle.js";
 import "./components/cloudtitan-login.js";
 import "./components/cloudtitan-token-list.js";
+import "./components/cloudtitan-downloads.js";
 
 class CloudtitanMain extends LitElement {
     static styles = css`
@@ -39,12 +40,12 @@ class CloudtitanMain extends LitElement {
         #body {
             display: grid;
             grid-template-columns: 100%;
-            grid-template-rows: 100%;
+            grid-template-rows: auto minmax(0,1fr);
             align-items: stretch;
             justify-items: center;
         }
 
-        #tokens {
+        #tokens, #downloads {
             width: 100%;
             max-width: 500px;
             padding: 10px;
@@ -56,6 +57,21 @@ class CloudtitanMain extends LitElement {
 
         mwc-icon {
             --mdc-icon-size: 16px;
+        }
+
+        #downloads {
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+        }
+
+        #dl-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            height: 44px;
+            display: grid;
+            align-items: center;
+            border-bottom: 1px solid #b3b3b3;
         }
     `;
 
@@ -80,21 +96,10 @@ class CloudtitanMain extends LitElement {
                 <div id="header">
                     ${unsafeHTML(favicon)}
                     <div id="title">CloudTitan</div>
-                    <overlay-trigger placement="bottom" offset="0" id="download-client">
-                        <sp-action-button size="s" quiet slot="trigger"
-                            quiet
-                            emphasized
-                            selected
-                            @click=${this.#downloadClient}
-                        >
-                            <mwc-icon slot="icon">cloud_download</mwc-icon>
-                            client
-                        </sp-action-button>
-                        <sp-tooltip slot="hover-content">Download cloudtitan client</sp-tooltip>
-                    </overlay-trigger>
                     <cloudtitan-login></cloudtitan-login>
                 </div>
                 <div id="body">
+                    <cloudtitan-downloads id="downloads"></cloudtitan-downloads>
                     <cloudtitan-token-list
                         id="tokens"
                         .tokens=${auth.tokens}

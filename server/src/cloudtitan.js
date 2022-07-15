@@ -1,5 +1,7 @@
 #!/usr/bin/node
 
+import { basename } from "path";
+
 import Socket from "cloudtitan-common/comm/Socket.js";
 import { IpcClient, IpcHost } from "cloudtitan-common/comm/Ipc.js";
 
@@ -106,6 +108,7 @@ server.http("~/auth/:path(.*)?", (req, res) => auth.serve(req, res));
 
 server.http("~/dl/:path(.*)", (req, res, { path }) => {
     session(req, res);
+    res.setHeader("Content-Disposition", `attachment; filename=${basename(path)}`);
     return dl.serve(req, res, { path: `/${path}` });
 });
 
