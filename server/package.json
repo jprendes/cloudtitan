@@ -12,7 +12,6 @@
     "http-proxy": "^1.18.1",
     "level": "^8.0.0",
     "mime-types": "^2.1.35",
-    "node-pty": "^0.10.1",
     "path-to-regexp": "^6.2.1",
     "rimraf": "^3.0.2",
     "selfsigned": "^2.0.1",

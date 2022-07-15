@@ -10,7 +10,7 @@
         "build": "run-s build:clean build:bundle build:package build:gzip",
         "build:clean": "rimraf build ../dist/cloudtitan ../dist/cloudtitan.gz",
         "build:bundle": "webpack",
-        "build:package": "pkg ./package.json -C Brotli -t node16-linux-x64 -o ../dist/cloudtitan",
+        "build:package": "pkg ./package.json -C Brotli -t linux-x64 -o ../dist/cloudtitan",
         "build:gzip": "gzip -k ../dist/cloudtitan"
     },
     "pkg": {
