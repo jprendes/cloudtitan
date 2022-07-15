@@ -1,7 +1,7 @@
 import cliArgs from "command-line-args";
 import cliUsage from "command-line-usage";
 
-const { stdout } = process;
+import { DEFAULTS } from "./config.js";
 
 const options = [{
     name: "bitstream",
@@ -9,6 +9,7 @@ const options = [{
     type: String,
     typeLabel: "{underline file}",
     description: "The bitstream to load in the FPGA.",
+    defaultValue: DEFAULTS.bitstream,
 }, {
     name: "firmware",
     alias: "f",
@@ -16,24 +17,29 @@ const options = [{
     type: String,
     typeLabel: "{underline file[@offset]}",
     description: "The firmware file to load in the FPGA.",
+    defaultValue: DEFAULTS.firmware,
 }, {
     name: "timeout",
     alias: "t",
     type: Number,
     typeLabel: "{underline seconds}",
     description: "Stop session after [seconds] without activity.",
+    defaultValue: 2,
+    defaultValue: DEFAULTS.timeout,
 }, {
     name: "host",
     alias: "H",
     type: String,
     typeLabel: "{underline address}",
     description: "The address of the cloudtitan server.",
+    defaultValue: process.env.CLOUDTITAN_HOST || DEFAULTS.host,
 }, {
     name: "auth-token",
     alias: "a",
     type: String,
     typeLabel: "{underline token}",
     description: "Your identification token.",
+    defaultValue: process.env.CLOUDTITAN_AUTH_TOKEN || DEFAULTS.authToken,
 }, {
     name: "help",
     alias: "h",
@@ -43,20 +49,25 @@ const options = [{
     name: "no-tls",
     type: Boolean,
     description: "Disable TLS in the network connection.",
+    defaultValue: DEFAULTS.noTls,
 }, {
     name: "self-signed",
     type: Boolean,
     description: "Accept self signed certificates from TLS servers.",
+    defaultValue: DEFAULTS.selfSigned,
 }];
 
 function parse() {
-    let opts = cliArgs(options, { camelCase: true });
+    const opts = cliArgs(options, { camelCase: true });
 
-    opts = {
-        authToken: process.env.AUTH_TOKEN,
-        host: process.env.CLOUDTITAN_HOST,
-        timeout: 2,
-        ...opts,
+    if (opts.help) return opts;
+
+    if (!opts.authToken) {
+        throw new Error("Missing auth token");
+    }
+    
+    if (!opts.host) {
+        throw new Error("Missing host");
     }
 
     if (opts.noTls) {
@@ -76,11 +87,20 @@ function parse() {
     if (opts.firmware.length > 1) {
         for (const [path, offset] of opts.firmware) {
             if (offset < 0) {
-                console.error(`Firmware file "${path}" requires an offset.`);
-                process.exit(1);
+                throw new Error(`Firmware file "${path}" requires an offset.`);
             }
         }
     }
+
+    if (opts.timeout === null || isNaN(opts.timeout) || opts.timeout <= 0) {
+        throw new Error("Timeout must be a positive integer");
+    }
+    
+    if (opts.timeout > Number.MAX_SAFE_INTEGER) {
+        throw new Error(`Timeout must be smaller than ${Number.MAX_SAFE_INTEGER}`);
+    }
+    
+    opts.timeout = Math.round(opts.timeout);
 
     return opts;
 }

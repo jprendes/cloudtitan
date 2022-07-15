@@ -16,7 +16,8 @@
     "pkg": {
         "assets": [
             "build/*.node",
-            "sandbox/**/*"
+            "sandbox/**/*",
+            "assets/**/*"
         ]
     },
     "dependencies": {

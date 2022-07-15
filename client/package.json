@@ -13,6 +13,12 @@
         "build:package": "pkg ./package.json -C Brotli -t node16-linux-x64 -o ../dist/cloudtitan",
         "build:gzip": "gzip -k ../dist/cloudtitan"
     },
+    "pkg": {
+        "assets": [
+            "build/*.node",
+            "assets/**/*"
+        ]
+    },
     "dependencies": {
         "cloudtitan-common": "file:../common",
         "command-line-args": "^5.2.1",

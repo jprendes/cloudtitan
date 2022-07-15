@@ -39,7 +39,7 @@ let opts = null;
 try {
     opts = parse();
 } catch (err) {
-    console.error(err.message);
+    console.error(`Error: ${err.message}`);
     console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
     process.exit(1);
 }
@@ -48,32 +48,6 @@ if (opts.help) {
     usage();
     process.exit(0);
 }
-
-if (!opts.authToken) {
-    console.error("Error: Missing auth token");
-    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
-    process.exit(1);
-}
-
-if (!opts.host) {
-    console.error("Error: Missing host");
-    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
-    process.exit(1);
-}
-
-if (opts.timeout === null || isNaN(opts.timeout) || opts.timeout <= 0) {
-    console.error("Error: timeout must be a positive integer");
-    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
-    process.exit(1);
-}
-
-if (opts.timeout > Number.MAX_SAFE_INTEGER) {
-    console.error(`Error: timeout must be smaller than ${Number.MAX_SAFE_INTEGER}`);
-    console.error(`Run \`${basename(process.argv[0])} --help\` for help`);
-    process.exit(1);
-}
-
-opts.timeout = Math.round(opts.timeout);
 
 const compress = (data) => new Promise((resolve, reject) => zlib.gzip(data, {
     chunkSize: 32 * 1024,
