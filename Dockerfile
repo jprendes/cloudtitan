@@ -1,6 +1,13 @@
-FROM archlinux
+# Use the oldets debian published with node
+FROM node:16-buster
 
-RUN pacman -Sy --noconfirm bubblewrap npm clang rust make pm2 && pm2 install pm2-logrotate
+# Install bubblewrap
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -yq update && \
+    apt-get -yq install bubblewrap && \
+    npm install --location=global pm2 && \
+    pm2 install pm2-logrotate
 
 ENV UI_ROOT=/ui
 ENV DL_ROOT=/dl
