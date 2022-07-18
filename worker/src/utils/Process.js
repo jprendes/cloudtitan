@@ -12,13 +12,13 @@ class Process extends Evented {
             stdio: "pipe",
         });
         this.#child.onExit(this.#onExit);
-        this.#exit = this.once(["exit", "destroy"]);
+        this.#exit = this.once(["exit", "destroy"]).then(([, reason]) => reason);
         this.#child.onData(this.#onData);
     }
 
-    #onExit = () => {
+    #onExit = (code, signal) => {
         this.#child = null;
-        this.emit("exit");
+        this.emit("exit", code !== null ? code : signal);
         super.destroy();
     };
 
