@@ -29,7 +29,10 @@ class Session extends Evented {
     async #run(...args) {
         const process = this.#sandbox.run(...args);
         process.on("data", (data) => this.emit("command", data));
-        await process.wait();
+        const reason = await process.wait();
+        if (reason) {
+            throw new Error("Child process exited abnormally");
+        }
     }
 
     async start(binaries, commands, timeout) {
@@ -54,32 +57,37 @@ class Session extends Evented {
         }));
 
         for (const [cmd, ...args] of commands) {
-            switch (cmd) {
-            case "console": {
-                // For console we just wait, since the console is always outputed
-                const t = parseFloat(args[0], 10) || 2;
-                const watchdog = Watchdog.fromEvent(this, "console", t * 1e3);
-                this.#sandbox.own(watchdog);
-                await watchdog.once(["alert", "destroy"]);
-                watchdog.destroy();
-                this.#sandbox.release(watchdog);
-                break;
-            }
-            case "load-bitstream": {
-                this.emit("prompt", `${cmd} ${args.join(" ")}`);
-                await this.#run("load-bitstream", ...args);
-                await this.#run("set-pll");
-                break;
-            }
-            case "bootstrap": {
-                this.emit("prompt", `${cmd} ${args.join(" ")}`);
-                await this.#run("bootstrap", ...args);
-                break;
-            }
-            default: {
-                this.emit("error", `Skipping invalid command "${cmd}"`);
-                break;
-            }
+            try {
+                switch (cmd) {
+                case "console": {
+                    // For console we just wait, since the console is always outputed
+                    const t = parseFloat(args[0], 10) || 2;
+                    const watchdog = Watchdog.fromEvent(this, "console", t * 1e3);
+                    this.#sandbox.own(watchdog);
+                    await watchdog.once(["alert", "destroy"]);
+                    watchdog.destroy();
+                    this.#sandbox.release(watchdog);
+                    break;
+                }
+                case "load-bitstream": {
+                    this.emit("prompt", `${cmd} ${args.join(" ")}`);
+                    await this.#run("load-bitstream", ...args);
+                    await this.#run("set-pll");
+                    break;
+                }
+                case "bootstrap": {
+                    this.emit("prompt", `${cmd} ${args.join(" ")}`);
+                    await this.#run("bootstrap", ...args);
+                    break;
+                }
+                default: {
+                    this.emit("error", `Skipping invalid command "${cmd}"`);
+                    break;
+                }
+                }
+            } catch (err) {
+                this.emit("error", `Error while running command "${cmd}"`);
+                throw err;
             }
         }
 
