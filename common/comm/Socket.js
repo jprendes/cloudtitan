@@ -23,14 +23,20 @@ function setupWatchdog(ws, emitter, timeout) {
     emitter.own(terminate);
 }
 
+const EVTS = {
+    MESSAGE: 0, // message on this channel
+    OPEN: 1, // open a subchannel
+    CLOSE: 2, // close a subchannel
+    ROUTE: 3, // route a message to a sub channel
+}
+
 class Socket extends Evented {
     #ws = null;
     #closed = false;
-    #watchdog = null;
 
     static fromWebSocket(ws, { timeout = 30e3 } = {}) {
         if (ws.readyState === ws.CLOSED || ws.readyState === ws.CLOSING) {
-            throw new Error("WebSocker is closing or already closed");
+            throw new Error("WebSocket is closing or already closed");
         }
 
         const emitter = new Evented();
@@ -42,6 +48,7 @@ class Socket extends Evented {
         emitter.send = (...args) => ws.send(serialize(args));
         emitter.close = (...args) => {
             emitter.emit("close", ...args);
+            emitter.destroy();
             ws.close(...args);
         };
 
@@ -65,7 +72,7 @@ class Socket extends Evented {
     constructor(ws) {
         super();
         this.#ws = ws;
-        this.#ws.on("message", (...args) => {
+        this.#ws.on(EVTS.MESSAGE, (...args) => {
             this.emit("message", ...args);
         });
         this.#ws.on("close", (...args) => {
@@ -73,15 +80,8 @@ class Socket extends Evented {
             this.emit("close", ...args);
             this.destroy();
         });
-        this.#ws.on("open-channel", (name) => {
+        this.#ws.on(EVTS.OPEN, (name) => {
             this.channel(name);
-        });
-        this.#ws.on("ping", (...args) => {
-            this.emit("ping", ...args);
-            this.#ws.send("pong", ...args);
-        });
-        this.#ws.on("pong", (...args) => {
-            this.emit("pong", ...args);
         });
     }
 
@@ -101,14 +101,9 @@ class Socket extends Evented {
         return super.once(...args);
     }
 
-    ping() {
-        this.#ensureOpen();
-        this.#ws.send("ping");
-    }
-
     send(...args) {
         this.#ensureOpen();
-        this.#ws.send("message", ...args);
+        this.#ws.send(EVTS.MESSAGE, ...args);
     }
 
     close(...args) {
@@ -124,11 +119,11 @@ class Socket extends Evented {
         if (this.#channels.has(name)) return this.#channels.get(name);
 
         const emitter = new Evented();
-        this.#ws.on("channel", (target, ...args) => {
+        this.#ws.on(EVTS.ROUTE, (target, ...args) => {
             if (target !== name) return;
             emitter.emit(...args);
         });
-        this.#ws.on("close-channel", (target, ...args) => {
+        this.#ws.on(EVTS.CLOSE, (target, ...args) => {
             if (target !== name) return;
             this.#channels.delete(name);
             emitter.emit("close", ...args);
@@ -138,15 +133,15 @@ class Socket extends Evented {
             emitter.emit("close", ...args);
             emitter.destroy();
         });
-        emitter.send = (...args) => this.#ws.send("channel", name, ...args);
+        emitter.send = (...args) => this.#ws.send(EVTS.ROUTE, name, ...args);
         emitter.close = (...args) => {
             emitter.emit("close", ...args);
-            this.#ws.send("close-channel", name, ...args);
+            this.#ws.send(EVTS.CLOSE, name, ...args);
             this.#channels.delete(name);
             emitter.destroy();
         };
 
-        this.#ws.send("open-channel", name);
+        this.#ws.send(EVTS.OPEN, name);
 
         const sock = new Socket(emitter);
         this.#channels.set(name, sock);
