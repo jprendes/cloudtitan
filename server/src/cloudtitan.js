@@ -29,10 +29,6 @@ const auth = new Auth();
 
 const queue = new Channel();
 
-function session(req, res) {
-    cookie.set(res, "gcid", GAPI_CLIENT_ID);
-}
-
 let ui;
 if (UI_ROOT) {
     ui = Static.fromRoot(UI_ROOT);
@@ -80,15 +76,14 @@ server.ws("/worker", async (conn, req) => {
         return;
     }
 
-    try {
-        const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
-        const tasks = queue.tasks();
-        sock.on("close", () => tasks.abort());
+    const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
+    const tasks = queue.tasks();
+    sock.on("close", () => tasks.abort());
 
+    try {
         for await (const task of tasks) {
             try {
-                const uuid = uuidv4();
-                const channel = sock.channel(uuid);
+                const channel = sock.channel(uuidv4());
                 const ipc = new IpcClient(channel);
                 await task(ipc.proxy());
                 await ipc.close();
@@ -107,13 +102,12 @@ server.upgrade("/ws", (req, socket, head) => ui.serve(req, socket, head, {}));
 server.http("~/auth/:path(.*)?", (req, res) => auth.serve(req, res));
 
 server.http("~/dl/:path(.*)", (req, res, { path }) => {
-    session(req, res);
     res.setHeader("Content-Disposition", `attachment; filename=${basename(path)}`);
     return dl.serve(req, res, { path: `/${path}` });
 });
 
 server.http("~/:path(.*)", (req, res) => {
-    session(req, res);
+    cookie.set(res, "gcid", GAPI_CLIENT_ID);
     return ui.serve(req, res, {});
 });
 
