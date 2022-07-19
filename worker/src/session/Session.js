@@ -26,9 +26,36 @@ class Session extends Evented {
         this.#sandbox.resize(...size);
     }
 
+    #onCommandData = (data) => {
+        this.emit("command", data);
+    };
+
+    #consoleBacklog = "";
+    #consolePaused = true;
+    #clearConsole() { this.#consoleBacklog = ""; }
+    #resumeConsole() {
+        this.#consolePaused = false;
+        if (this.#consoleBacklog) {
+            this.emit("console", this.#consoleBacklog);
+            this.#consoleBacklog = "";
+        }
+    }
+
+    #pauseConsole() {
+        this.#consolePaused = true;
+    }
+
+    #onConsoleData = (data) => {
+        if (this.#consolePaused) {
+            this.#consoleBacklog += data.toString();
+        } else {
+            this.emit("console", data);
+        }
+    };
+
     async #run(...args) {
         const process = this.#sandbox.run(...args);
-        process.on("data", (data) => this.emit("command", data));
+        process.on("data", this.#onCommandData);
         const reason = await process.wait();
         if (reason) {
             throw new Error("Child process exited abnormally");
@@ -40,12 +67,12 @@ class Session extends Evented {
         await this.#sandbox.writeFiles(binaries);
 
         const console = this.#sandbox.run("console", "-q");
+        console.on("data", this.#onConsoleData);
+        this.#pauseConsole();
 
-        // Wait until after we start loading the bitstream to listen to the console
-        // this avoid sending data dangling from previous sessions
-        this.once("command").then(() => {
-            console.on("data", (data) => this.emit("console", data));
-        });
+        // Clear any data from before loading the bitstream.
+        // This avoid sending data dangling from previous sessions.
+        this.once("command").then(this.#clearConsole());
 
         commands = commands.slice();
         if (commands[0]?.[0] !== "load-bitstream") {
@@ -64,7 +91,9 @@ class Session extends Evented {
                     const t = parseFloat(args[0], 10) || 2;
                     const watchdog = Watchdog.fromEvent(this, "console", t * 1e3);
                     this.#sandbox.own(watchdog);
+                    this.#resumeConsole();
                     await watchdog.once(["alert", "destroy"]);
+                    this.#pauseConsole();
                     watchdog.destroy();
                     this.#sandbox.release(watchdog);
                     break;
