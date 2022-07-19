@@ -8,6 +8,7 @@ import "@spectrum-web-components/progress-circle/sp-progress-circle.js";
 import "./components/cloudtitan-login.js";
 import "./components/cloudtitan-token-list.js";
 import "./components/cloudtitan-downloads.js";
+import "./components/cloudtitan-usage.js";
 
 class CloudtitanMain extends LitElement {
     static styles = css`
@@ -40,14 +41,14 @@ class CloudtitanMain extends LitElement {
         #body {
             display: grid;
             grid-template-columns: 100%;
-            grid-template-rows: auto minmax(0,1fr);
+            grid-template-rows: auto auto minmax(0,1fr);
             align-items: stretch;
             justify-items: center;
         }
 
-        #tokens, #downloads {
+        #tokens, #downloads, #usage {
             width: 100%;
-            max-width: 500px;
+            max-width: 580px;
             padding: 10px;
         }
 
@@ -57,12 +58,6 @@ class CloudtitanMain extends LitElement {
 
         mwc-icon {
             --mdc-icon-size: 16px;
-        }
-
-        #downloads {
-            width: 100%;
-            max-width: 500px;
-            padding: 10px;
         }
 
         #dl-title {
@@ -99,7 +94,8 @@ class CloudtitanMain extends LitElement {
                     <cloudtitan-login></cloudtitan-login>
                 </div>
                 <div id="body">
-                    <cloudtitan-downloads id="downloads"></cloudtitan-downloads>
+                    <cloudtitan-usage id="usage"></cloudtitan-usage>
+                    <!--<cloudtitan-downloads id="downloads"></cloudtitan-downloads>-->
                     <cloudtitan-token-list
                         id="tokens"
                         .tokens=${auth.tokens}

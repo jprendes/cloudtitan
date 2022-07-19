@@ -39,8 +39,8 @@ class CloudtitanTokenList extends LitElement {
         }
 
         #empty {
-            height: 25px;
-            padding: 5px;
+            box-sizing: border-box;
+            height: 37px;
             width: 100%;
             color: var(--spectrum-alias-component-border-color-selected-default);
             border: 1px solid var(--spectrum-alias-component-border-color-selected-default);
