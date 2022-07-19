@@ -16,6 +16,22 @@ function clampInt(x, min, max) {
 }
 
 class Api extends Evented {
+    static BINARIES = new Map([
+        ["/working/lowrisc_systems_chip_earlgrey_cw310_0.1.bit.orig", defaultBitstream],
+        ["/working/hello_world_fpga_cw310.bin", defaultFirmware],
+    ]);
+
+    static async healthcheck(session) {
+        await session.ready();
+        await session.start(Api.BINARIES, [
+            ["load-bitstream", "/working/lowrisc_systems_chip_earlgrey_cw310_0.1.bit.orig"],
+            ["console", "2"],
+            ["bootstrap", "/working/hello_world_fpga_cw310.bin"],
+            ["console", "2"],
+        ], 300e3);
+        await session.destroy();
+    }
+
     #status = "pending";
     #queue = null;
 
@@ -24,10 +40,7 @@ class Api extends Evented {
 
     #finished = null;
 
-    #binaries = new Map([
-        ["/working/lowrisc_systems_chip_earlgrey_cw310_0.1.bit.orig", defaultBitstream],
-        ["/working/hello_world_fpga_cw310.bin", defaultFirmware],
-    ]);
+    #binaries = new Map(Api.BINARIES);
 
     constructor(queue, timeout = 300e3) {
         super();
