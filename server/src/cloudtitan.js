@@ -3,9 +3,8 @@
 import { basename } from "path";
 
 import Socket from "cloudtitan-common/comm/Socket.js";
-import { IpcClient, IpcHost } from "cloudtitan-common/comm/Ipc.js";
+import { IpcHost } from "cloudtitan-common/comm/Ipc.js";
 
-import { v4 as uuidv4 } from "uuid";
 import HttpServer from "./HttpServer.js";
 
 import {
@@ -20,6 +19,7 @@ import Static from "./Static.js";
 import Proxy from "./Proxy.js";
 import Auth from "./auth/Auth.js";
 import * as cookie from "./utils/cookie.js";
+import Worker from "./session/Worker.js";
 
 process.on("unhandledRejection", (error) => {
     console.error("Unhandled Promise Rejection", error);
@@ -77,21 +77,10 @@ server.ws("/worker", async (conn, req) => {
     }
 
     const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
-    const tasks = queue.tasks();
-    sock.on("close", () => tasks.abort());
+    const worker = new Worker(sock, queue);
 
     try {
-        for await (const task of tasks) {
-            try {
-                const channel = sock.channel(uuidv4());
-                const ipc = new IpcClient(channel);
-                await task(ipc.proxy());
-                await ipc.close();
-            } catch (err) {
-                console.error(err);
-                queue.unshift(task);
-            }
-        }
+        await worker.run();
     } catch (err) {
         // console.err(err);
     }
