@@ -16,7 +16,7 @@ class Process extends Evented {
         this.#child.onData(this.#onData);
     }
 
-    #onExit = (code, signal) => {
+    #onExit = ({ exitCode: code, signal }) => {
         this.#child = null;
         this.emit("exit", code !== null ? code : signal);
         super.destroy();
