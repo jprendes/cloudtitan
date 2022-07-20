@@ -1,5 +1,5 @@
-import { generateKey } from "crypto";
 import Evented from "cloudtitan-common/events/Evented.js";
+import uuid from "cloudtitan-common/utils/uuid.js";
 
 import GoogleOAuth2 from "./GoogleOAuth2.js";
 
@@ -9,19 +9,6 @@ import { GAPI_CLIENT_ID } from "../config.js";
 const db = new DB("users");
 
 const googleAuth = new GoogleOAuth2(GAPI_CLIENT_ID);
-
-const uuid = async () => {
-    const key = await new Promise((ressolve, reject) => {
-        generateKey("aes", { length: 256 }, (error, key) => {
-            if (error) {
-                reject(error);
-            } else {
-                ressolve(key);
-            }
-        });
-    });
-    return key.export().toString("hex");
-};
 
 class Users extends Evented {
     #byUuid = new Map();
