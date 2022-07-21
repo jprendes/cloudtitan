@@ -10,11 +10,6 @@ import { ROOT } from "../config.js";
 const defaultBitstream = gzipSync(readFileSync(`${ROOT}/assets/lowrisc_systems_chip_earlgrey_cw310_0.1.bit.orig`));
 const defaultFirmware = gzipSync(readFileSync(`${ROOT}/assets/hello_world_fpga_cw310.bin`));
 
-function clampInt(x, min, max) {
-    [, x] = [parseInt(x, 10), min, max].sort((a, b) => a - b);
-    return x;
-}
-
 class Api extends Evented {
     static BINARIES = new Map([
         ["/working/lowrisc_systems_chip_earlgrey_cw310_0.1.bit.orig", defaultBitstream],
@@ -70,12 +65,6 @@ class Api extends Evented {
         return this.#status;
     }
 
-    #size = null;
-    resize(cols, rows) {
-        this.#size = [clampInt(cols, 20, 300), clampInt(rows, 6, 100)];
-        this.#session?.resize(...this.#size);
-    }
-
     get position() {
         return this.#queue.position(this.#task);
     }
@@ -90,7 +79,6 @@ class Api extends Evented {
         try {
             this.#session = session;
             await this.#session.ready();
-            if (this.#size) this.#session.resize(...this.#size);
             this.#session.on(["console", "command", "prompt", "error"], (evt, ...args) => this.emit(evt, ...args));
             await this.#session.start(this.#binaries, this.commands.slice(), this.#timeout);
             await this.#session.destroy();

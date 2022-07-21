@@ -33,7 +33,6 @@ class Sandbox extends Owner {
     #processes = new Set();
     #ready = null;
     #root = null;
-    #size = null;
     #killed = false;
 
     constructor() {
@@ -50,25 +49,23 @@ class Sandbox extends Owner {
         return new Set(this.#processes);
     }
 
-    #spawn = (...args) => {
-        const opts = { env: {} }; // ENV };
-        if (this.#size) {
-            [opts.cols, opts.rows] = this.#size;
-        }
-        return new Process(BUBBLEWRAP_BIN, [
-            ...BUBBLEWRAP_ARGS,
-            "--setenv", "PATH", "/usr/local/bin:/usr/bin:/usr/local/sbin:/bin:/opentitantool/bin",
-            "--setenv", "HOME", "/working",
-            "--setenv", "XDG_CONFIG_HOME", "/opentitantool/config",
-            "--ro-bind", `${this.#root}/opentitantool`, "/opentitantool",
-            "--ro-bind", `${this.#root}/working`, "/working",
-            "--chdir", "/working",
-            OPENTITANTOOL_BIN,
-            "--interface=cw310",
-            "--conf=/opentitantool/config/opentitantool/config.d/opentitan_cw310.json",
-            ...args,
-        ], opts);
-    };
+    #spawn = (...args) => new Process(BUBBLEWRAP_BIN, [
+        ...BUBBLEWRAP_ARGS,
+        "--setenv", "PATH", "/usr/local/bin:/usr/bin:/usr/local/sbin:/bin:/opentitantool/bin",
+        "--setenv", "HOME", "/working",
+        "--setenv", "XDG_CONFIG_HOME", "/opentitantool/config",
+        "--ro-bind", `${this.#root}/opentitantool`, "/opentitantool",
+        "--ro-bind", `${this.#root}/working`, "/working",
+        "--chdir", "/working",
+        OPENTITANTOOL_BIN,
+        "--interface=cw310",
+        "--conf=/opentitantool/config/opentitantool/config.d/opentitan_cw310.json",
+        ...args,
+    ], {
+        env: {},
+        cols: 1024,
+        rows: 300,
+    });
 
     #init = async () => {
         // Run the reload usb command to avoid the sporadic driver problem
@@ -79,19 +76,6 @@ class Sandbox extends Owner {
         await fse.copy(`${ROOT}/sandbox/opentitantool`, `${this.#root}/opentitantool`);
 
         return this;
-    };
-
-    resize(...size) {
-        if (size.length !== 2) return;
-        this.#size = size;
-        this.#resize();
-    }
-
-    #resize = () => {
-        if (!this.#size) return;
-        for (const process of this.#processes) {
-            process.resize(...this.#size);
-        }
     };
 
     get killed() { return this.#killed; }

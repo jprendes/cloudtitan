@@ -61,7 +61,18 @@ const compress = (data) => new Promise((resolve, reject) => zlib.gzip(data, {
 }));
 
 function write(f, ...data) {
-    for (const chunk of data) f.write(chunk);
+    const buff = Buffer.concat([...data.map((chunk) => Buffer.from(chunk))]);
+    const str = buff.toString().replace(/\[█×(\d+),░×(\d+),_×(\d+)\]/g, (_, done, todo, width) => {
+        width = parseInt(width, 10);
+        done = parseInt(done, 10);
+        todo = parseInt(todo, 10);
+        const progress = done / (done + todo);
+        const available = stdout.columns - width + done + todo;
+        done = Math.round(available * progress);
+        todo = available - done;
+        return `[${Array(done).fill("█").join("")}${Array(todo).fill("░").join("")}]`;
+    });
+    f.write(str);
 }
 
 const sock = await Socket.connect(`${opts.host}/client`, {
@@ -72,11 +83,6 @@ const sock = await Socket.connect(`${opts.host}/client`, {
 });
 
 const api = new IpcClient(sock).proxy();
-
-if (stdout.isTTY) {
-    stdout.on("resize", () => api.resize(stdout.columns, stdout.rows));
-    api.resize(stdout.columns, stdout.rows);
-}
 
 let printedStatus = false;
 function printStatus(status) {

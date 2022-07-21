@@ -22,11 +22,9 @@ class Session extends Evented {
 
     ready() { return this.#ready; }
 
-    resize(...size) {
-        this.#sandbox.resize(...size);
-    }
-
     #onCommandData = (data) => {
+        data = data.toString();
+        data = data.replace(/\[(█*)(░*)\]/g, (_, done, todo) => `[█×${done.length},░×${todo.length},_×1024]`);
         this.emit("command", data);
     };
 
