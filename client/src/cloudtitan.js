@@ -7,8 +7,8 @@ import Evented from "cloudtitan-common/events/Evented.js";
 import Socket from "cloudtitan-common/comm/Socket.js";
 import { IpcClient } from "cloudtitan-common/comm/Ipc.js";
 
-import { parse, usage } from "./opts.js";
 import { basename } from "path";
+import { parse, usage } from "./opts.js";
 
 process.on("unhandledRejection", (error) => {
     console.error("Unhandled Promise Rejection", error);
@@ -67,7 +67,7 @@ function write(f, ...data) {
         done = parseInt(done, 10);
         todo = parseInt(todo, 10);
         const progress = done / (done + todo);
-        const available = stdout.columns - width + done + todo;
+        const available = Math.max(1, stdout.columns - width + done + todo);
         done = Math.round(available * progress);
         todo = available - done;
         return `[${Array(done).fill("█").join("")}${Array(todo).fill("░").join("")}]`;
