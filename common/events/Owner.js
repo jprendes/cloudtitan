@@ -42,6 +42,7 @@ class Owner {
         return {
             remove() {
                 if (id !== null) clearInterval(id);
+                id = null;
             },
         };
     }

@@ -11,7 +11,7 @@ function setupWatchdog(ws, emitter, timeout) {
     ws.on("message", () => activity.tick());
     activity.on("alert", () => ws.ping());
     activity.tick();
-    
+
     // Terminate the socket if there's no activity in over timeout time
     const terminate = Watchdog.fromEvent(activity, "tick", timeout);
     terminate.on("alert", () => {
@@ -28,7 +28,7 @@ const EVTS = {
     OPEN: 1, // open a subchannel
     CLOSE: 2, // close a subchannel
     ROUTE: 3, // route a message to a sub channel
-}
+};
 
 class Socket extends Evented {
     #ws = null;
