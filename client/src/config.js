@@ -11,17 +11,19 @@ if (typeof __dirname === "undefined") {
 }
 
 const ROOT = root;
+const CONFIG_DIR = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
 
 const embeddedDefaults = await fse.readJson(join(ROOT, "assets", "cloudtitan.json")).catch(() => ({}));
-const userDefaults = await fse.readJson(join(homedir(), "cloudtitan.json")).catch(() => ({}));
+const userDefaults = await fse.readJson(join(CONFIG_DIR, "cloudtitan", "client.json")).catch(() => ({}));
 
 const DEFAULTS = {
+    timeout: 2,
     ...embeddedDefaults,
     ...userDefaults,
 };
 
 export {
-    // eslint-disable-next-line import/prefer-default-export
     ROOT,
+    CONFIG_DIR,
     DEFAULTS,
 };

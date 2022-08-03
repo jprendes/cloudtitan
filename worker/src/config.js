@@ -1,7 +1,7 @@
+import fse from "fs-extra";
 import { dirname, join, normalize } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
-import fse from "fs-extra";
 
 let root;
 if (typeof __dirname === "undefined") {
@@ -11,9 +11,10 @@ if (typeof __dirname === "undefined") {
 }
 
 const ROOT = root;
+const CONFIG_DIR = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
 
 const embeddedDefaults = await fse.readJson(join(ROOT, "assets", "cloudtitan.json")).catch(() => ({}));
-const userDefaults = await fse.readJson(join(homedir(), "cloudtitan.json")).catch(() => ({}));
+const userDefaults = await fse.readJson(join(CONFIG_DIR, "cloudtitan", "worker.json")).catch(() => ({}));
 
 const DEFAULTS = {
     ...embeddedDefaults,
@@ -34,8 +35,8 @@ const DEFAULT_BW_RO_BINDS = DEFAULTS.BW_RO_BINDS || [
 const BW_RO_BINDS = (process.env.BW_RO_BINDS || DEFAULT_BW_RO_BINDS.join(":")).split(":");
 
 export {
-    // eslint-disable-next-line import/prefer-default-export
     ROOT,
+    CONFIG_DIR,
     BW_RO_BINDS,
     DEFAULTS,
 };
