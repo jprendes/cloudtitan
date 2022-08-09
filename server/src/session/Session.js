@@ -60,7 +60,7 @@ class Session extends Evented {
         history = [],
         status = Session.STATUS.PENDING,
         creationDate = Date.now(),
-        timeout = 20e3,
+        timeout = 300e3,
         temp = false,
     }) {
         super();

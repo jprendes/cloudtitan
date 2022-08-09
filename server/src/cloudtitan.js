@@ -34,6 +34,7 @@ const jobs = await database.get("queue") || [];
 for (const id of jobs) {
     // eslint-disable-next-line no-await-in-loop
     const session = await Session.byId(id);
+    if (!session) continue;
     if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
     session.status = Session.STATUS.PENDING;
     queue.push(session);
