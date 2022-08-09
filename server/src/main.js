@@ -40,13 +40,13 @@ program
 program.parse(process.argv);
 
 const opts = program.opts();
+const options = {
+    tls: opts.listen.startsWith("https://"),
+    ...opts,
+    listen: opts.listen.replace(/^https?:/, "tcp:"),
+    database: opts.database.replace(/^file:\/\//, ""),
+};
 
-if (!("tls" in opts)) {
-    opts.tls = opts.listen.startsWith("https://");
-}
-
-opts.listen = opts.listen.replace(/^https?:/, "tcp:");
-
-export default opts;
+export default options;
 
 export { ROOT };
