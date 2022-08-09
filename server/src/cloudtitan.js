@@ -205,7 +205,7 @@ server.http("~/session/dl/:id", async (req, res, { id }) => {
 });
 
 server.ws("/worker/demo", async (conn, req) => {
-    if (!process.env.CLOUDTITAN_DEMO) {
+    if (!opts.demo) {
         return conn.close(1011, "Not a demo server");
     }
     return server.serve("/worker", conn, req);
