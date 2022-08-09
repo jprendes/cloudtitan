@@ -181,7 +181,7 @@ server.ws("~/session/open/:token", async (conn, req, { token }) => {
 
     await session.once(["done", "delete"]);
 
-    return sock.close(1000, "Done");
+    if (!sock.closed) sock.close(1000, "Done");
 });
 
 server.http("~/session/dl/:id", async (req, res, { id }) => {
