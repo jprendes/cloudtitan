@@ -36,7 +36,7 @@ export default async (session, opts) => {
     emitter.on("prompt", (_, chunk) => stderr.color(COLORS.GREEN).bold().println("> ", chunk));
     emitter.on("command", (_, chunk) => stderr.color(COLORS.CYAN).transform(TRANSFORMS.progressBar).print(chunk));
     emitter.on("error", (_, chunk) => stderr.color(COLORS.RED).bold().println("> ", chunk));
-    emitter.on("queued", (pos, workers) => stderr.color(COLORS.YELLOW).bold().print("> ", queuedMsg(pos, workers), "\r"));
+    emitter.on("queued", (pos, workers) => pos && stderr.color(COLORS.YELLOW).bold().print("> ", queuedMsg(pos, workers), "\r"));
     emitter.on("delete", () => stderr.color(COLORS.RED).bold().println("> Session removed"));
 
     const [code, reason] = await sock.once("close");
