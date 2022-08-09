@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { signed, unsigned } from "leb128";
+import wtf8 from "wtf-8";
 
 import {
     toArrayBuffer,
@@ -50,7 +51,7 @@ function deserialize(buffer, references = []) {
 }
 
 function deserialize_impl(buffer, references) {
-    const tag = buffer.read(1).toString();
+    const tag = buffer.read(1).toString("binary");
 
     if (tag === TYPES.TRUE) return true;
     if (tag === TYPES.FALSE) return false;
@@ -75,7 +76,12 @@ function deserialize_impl(buffer, references) {
     }
     if (tag === TYPES.STRING) {
         const l = buffer.read_uleb();
-        ref.value = buffer.read(l).toString();
+        ref.value = wtf8.decode(buffer.read(l).toString("binary"));
+        return ref.value;
+    }
+    if (tag === TYPES.BINARY) {
+        const l = buffer.read_uleb();
+        ref.value = buffer.read(l).toString("binary");
         return ref.value;
     }
     if (tag === TYPES.ARRAY) {
@@ -91,8 +97,12 @@ function deserialize_impl(buffer, references) {
         ref.value = new Map();
         for (let i = 0; i < l; ++i) {
             const key = deserialize_impl(buffer, references);
-            const value = deserialize_impl(buffer, references);
-            ref.value.set(key, value);
+            if (Array.isArray(key) && key.length === 2) {
+                ref.value.set(key[0], key[1]);
+            } else {
+                const value = deserialize_impl(buffer, references);
+                ref.value.set(key, value);
+            }
         }
         return ref.value;
     }
@@ -116,14 +126,14 @@ function deserialize_impl(buffer, references) {
         ref.value = {};
         for (let i = 0; i < l; ++i) {
             const ll = buffer.read_uleb();
-            const key = buffer.read(ll).toString();
+            const key = wtf8.decode(buffer.read(ll).toString("binary"));
             const value = deserialize_impl(buffer, references);
             ref.value[key] = value;
         }
         return ref.value;
     }
 
-    throw new Error(`Invalid serialized value. Unknown type tag '${Buffer.from(tag).toString("hex")}'.`);
+    throw new Error(`Invalid serialized value. Unknown type tag '${Buffer.from(tag, "binary").toString("hex")}'.`);
 }
 
 export default deserialize;

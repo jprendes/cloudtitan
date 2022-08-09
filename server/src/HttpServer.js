@@ -7,9 +7,9 @@ import { Duplex } from "stream";
 import selfsigned from "selfsigned";
 import { unlink } from "fs/promises";
 
-import DB from "./DB.js";
+import database from "./DB.js";
 
-const db = new DB("config");
+const db = database.sublevel("config");
 
 function massageRoute(route) {
     let f = route;

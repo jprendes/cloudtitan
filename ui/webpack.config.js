@@ -81,7 +81,7 @@ module.exports = {
     },
     devServer: {
         allowedHosts: "all",
-        port: 8088,
+        port: 3108,
         client: {
             overlay: true,
             webSocketURL: "auto://0.0.0.0:0/ws",

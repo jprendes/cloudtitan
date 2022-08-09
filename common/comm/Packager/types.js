@@ -2,6 +2,7 @@ const TYPES = {
     INTEGER: "i",
     NUMBER: "n",
     STRING: "s",
+    BINARY: "B",
     TRUE: "t",
     FALSE: "f",
     UNDEFINED: "u",

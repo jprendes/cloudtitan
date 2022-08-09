@@ -75,11 +75,11 @@ docker run \
     --name cloudtitan-server \
     --user $(id -u http):$(id -g http) \
     --privileged \
-    --env GAPI_CLIENT_ID="$GAPI_CLIENT_ID" \
-    --env LISTEN="unix:/socket/http" \
     --env PM2_HOME=/tmp/pm2 \
     -v /var/cloudtitan/db:/db \
     -v /var/cloudtitan/socket:/socket \
-    cloudtitan
+    cloudtitan \
+    --listen "unix:/socket/http" \
+    --gapi "$GAPI_CLIENT_ID"
 
 systemctl reload nginx

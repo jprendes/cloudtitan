@@ -1,15 +1,8 @@
-import { generateKey } from "crypto";
+import { generateKey } from "./crypto.js";
 
-function uuid() {
-    return new Promise((ressolve, reject) => {
-        generateKey("aes", { length: 256 }, (error, key) => {
-            if (error) {
-                reject(error);
-            } else {
-                ressolve(key.export().toString("hex"));
-            }
-        });
-    });
+async function uuid() {
+    const key = await generateKey(256);
+    return key.toString("binary");
 }
 
 export default uuid;

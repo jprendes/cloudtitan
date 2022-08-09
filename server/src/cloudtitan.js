@@ -3,23 +3,24 @@
 import { basename } from "path";
 
 import Socket from "cloudtitan-common/comm/Socket.js";
-import { IpcHost } from "cloudtitan-common/comm/Ipc.js";
 
+import { deserialize, serialize } from "cloudtitan-common/comm/Packager.js";
+import Evented from "cloudtitan-common/events/Evented.js";
 import HttpServer from "./HttpServer.js";
 
-import {
-    UI_ROOT, UI_HOST, UI_PORT,
-    DL_ROOT, DL_HOST, DL_PORT,
-    HTTPS, LISTEN, GAPI_CLIENT_ID,
-} from "./config.js";
+import opts from "./main.js";
 
-import Api from "./session/Api.js";
 import Channel from "./utils/Channel.js";
 import Static from "./Static.js";
 import Proxy from "./Proxy.js";
 import Auth from "./auth/Auth.js";
 import * as cookie from "./utils/cookie.js";
 import Worker from "./session/Worker.js";
+import Session from "./session/Session.js";
+import sendJSON from "./utils/sendJSON.js";
+import * as tkn from "./utils/token.js";
+
+import database from "./DB.js";
 
 process.on("unhandledRejection", (error) => {
     console.error("Unhandled Promise Rejection", error);
@@ -29,52 +30,190 @@ const auth = new Auth();
 
 const queue = new Channel();
 
-let ui;
-if (UI_ROOT) {
-    ui = Static.fromRoot(UI_ROOT);
-} else {
-    ui = new Proxy({ target: { host: UI_HOST, port: UI_PORT } });
+const jobs = await database.get("queue") || [];
+for (const id of jobs) {
+    // eslint-disable-next-line no-await-in-loop
+    const session = await Session.byId(id);
+    if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
+    session.status = Session.STATUS.PENDING;
+    queue.push(session);
 }
 
-let dl;
-if (DL_HOST) {
-    dl = new Proxy({ target: { host: DL_HOST, port: DL_PORT } });
-} else {
-    dl = Static.fromRoot(DL_ROOT);
+queue.on(["work", "task", "tick"], () => {
+    const running = queue.running.map(({ id }) => id);
+    const pending = queue.pending.map(({ id }) => id);
+    database.set("queue", [...new Set([...running, ...pending])]);
+});
+
+function staticOrProxy(uri) {
+    if (uri.startsWith("file://")) return Static.fromRoot(uri.slice(7));
+    return Proxy.fromUrl(uri);
 }
+
+const ui = staticOrProxy(opts.ui);
+const dl = staticOrProxy(opts.downloads);
 
 const server = new HttpServer({
-    https: HTTPS,
+    https: opts.tls,
     logError: console.error,
 });
 
-server.ws("/client", async (conn, req) => {
-    const token = req.headers?.["auth-token"];
-    const user = auth.authorized(token);
+server.http("/session/list", async (req, res) => {
+    let [user] = await auth.token(req);
     if (!user) {
-        conn.close(1008, "Unauthorized");
-        return;
+        [user] = await auth.login(req);
+    }
+    if (!user) return server.serve("error/403", req, res);
+
+    const sessions = Promise.all([...user.sessions.keys()]
+        .map(async (tok) => {
+            const session = await Session.byId(tok);
+            return [
+                tkn.stringify([user.id, tok]),
+                {
+                    status: session.status,
+                    creationDate: session.creationDate,
+                },
+            ];
+        }));
+
+    return sendJSON(res, await sessions);
+});
+
+server.http("~/session/remove/:token", async (req, res, { token }) => {
+    const [user] = await auth.token(req);
+    if (!user) return server.serve("error/403", req, res);
+
+    const [uid, id] = tkn.parseOr(token, [null]);
+    if (uid !== user.id) return server.serve("error/403", req, res);
+    if (!user.sessions.has(id)) return server.serve("error/403", req, res);
+
+    const session = await Session.byId(id);
+
+    queue.remove(session);
+    await user.sessions.delete(id);
+
+    if (!session) return;
+    await session.delete();
+    await session.save();
+
+    return sendJSON(res, { success: true });
+});
+
+server.http("/session/new", async (req, res) => {
+    const [user] = await auth.token(req);
+    if (!user) return server.serve("error/403", req, res);
+
+    const chunks = [];
+    for await (const chunk of req) {
+        chunks.push(Buffer.from(chunk));
+    }
+    const [bins, cmds] = deserialize(Buffer.concat(chunks));
+
+    const binaries = new Map();
+    if (!(binaries instanceof Map)) return server.serve("error/400", req, res);
+    for (const [path, data] of bins.entries()) {
+        if (typeof path !== "string") return server.serve("error/400", req, res);
+        if (!(data instanceof Buffer)) return server.serve("error/400", req, res);
+        binaries.set(`/working/${basename(path)}`, Buffer.from(data));
     }
 
-    try {
-        const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
-        const api = new Api(queue, 120e3);
-        const apiIpc = new IpcHost(sock, api);
-
-        await api.wait();
-        await apiIpc.close();
-    } catch (err) {
-        // console.err(err);
+    const commands = [];
+    if (!(cmds instanceof Array)) return server.serve("error/400", req, res);
+    for (const cmd of cmds) {
+        if (!(cmd instanceof Array)) return server.serve("error/400", req, res);
+        if (!cmd.every((s) => typeof s === "string")) return server.serve("error/400", req, res);
+        commands.push(cmd);
     }
+
+    const session = await Session.new({ binaries, commands });
+
+    queue.push(session);
+
+    user.sessions.add(session.id);
+    const token = tkn.stringify([user.id, session.id]);
+    return sendJSON(res, { id: token });
+});
+
+server.ws("~/session/open/:token", async (conn, req, { token }) => {
+    const [user] = await auth.token(req);
+    if (!user) return conn.close(1008, "Unauthorized");
+
+    const [uid, id] = tkn.parseOr(token, [null]);
+    if (uid !== user.id) return conn.close(1008, "Unauthorized");
+    if (!user.sessions.has(id)) return conn.close(1011, "Invalid session");
+
+    const session = await Session.byId(id);
+    if (!session) return conn.close(1011, "Invalid session");
+
+    const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
+
+    sock.send("session", {
+        binaries: [...session.binaries.keys()],
+        commands: session.commands,
+        status: session.status,
+        history: session.history.length,
+    });
+
+    const emitter = new Evented();
+    sock.on("message", (...args) => emitter.emit(...args));
+
+    for (const event of session.history) {
+        sock.send(...event);
+    }
+
+    sock.own(session.on("*", (...args) => sock.send(...args)));
+
+    if (session.status === Session.STATUS.DONE || session.status === Session.STATUS.DELETED) {
+        return sock.close(1000, "Done");
+    }
+
+    let lastPos = NaN;
+    const sendQueued = () => {
+        const pos = queue.position(session);
+        if (!Number.isNaN(pos) && pos !== lastPos) {
+            lastPos = pos;
+            sock.send("queued", pos, queue.workers);
+        }
+    };
+    sock.own(queue.on(["tick", "task"], sendQueued));
+    sendQueued();
+
+    await session.once(["done", "delete"]);
+
+    return sock.close(1000, "Done");
+});
+
+server.http("~/session/dl/:id", async (req, res, { id }) => {
+    const [user] = await auth.token(req);
+    if (!user) return server.serve("error/403", req, res);
+
+    if (id !== "healthcheck") {
+        id = Buffer.from(id, "base64url").toString("binary");
+    }
+    const session = await Session.byId(id);
+    if (!session) return server.serve("error/404", req, res);
+
+    const { binaries, commands, timeout } = session;
+    const buffer = serialize({ binaries, commands, timeout });
+
+    res.writeHead(200, {
+        "Content-Type": "application/octet-stream",
+        "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+    });
+    res.end(buffer);
+});
+
+server.ws("/worker/demo", async (conn, req) => {
+    if (!process.env.CLOUDTITAN_DEMO) {
+        return conn.close(1011, "Not a demo server");
+    }
+    return server.serve("/worker", conn, req);
 });
 
 server.ws("/worker", async (conn, req) => {
-    const token = req.headers?.["auth-token"];
-    const user = auth.authorized(token);
-    if (!user) {
-        conn.close(1008, "Unauthorized");
-        return;
-    }
+    const [user] = await auth.token(req);
+    if (!user) return conn.close(1008, "Unauthorized");
 
     const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
     const worker = new Worker(sock, queue);
@@ -82,7 +221,7 @@ server.ws("/worker", async (conn, req) => {
     try {
         await worker.run();
     } catch (err) {
-        // console.err(err);
+        console.error(err);
     }
 });
 
@@ -96,11 +235,11 @@ server.http("~/dl/:path(.*)", (req, res, { path }) => {
 });
 
 server.http("~/:path(.*)", (req, res) => {
-    cookie.set(res, "gcid", GAPI_CLIENT_ID);
+    cookie.set(res, "gcid", opts.gapi);
     return ui.serve(req, res, {});
 });
 
-server.listen(LISTEN);
-console.log(`running at ${LISTEN
+server.listen(opts.listen);
+console.log(`running at ${opts.listen
     .replace(/^tcp:\/\/0.0.0.0/, "tcp://localhost")
-    .replace(/^tcp:/, HTTPS ? "https:" : "http:")}`);
+    .replace(/^tcp:/, opts.tls ? "https:" : "http:")}`);

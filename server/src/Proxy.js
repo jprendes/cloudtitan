@@ -5,6 +5,10 @@ import HttpServer from "./HttpServer.js";
 class Proxy {
     #proxy = null;
 
+    static fromUrl(target, opts = {}) {
+        return new Proxy({ ...opts, target });
+    }
+
     constructor(opts) {
         // set default onError handlers
         this.onError(null);

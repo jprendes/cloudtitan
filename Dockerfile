@@ -9,16 +9,18 @@ RUN apt-get -yq update && \
     npm install --location=global pm2 && \
     pm2 install pm2-logrotate
 
-ENV UI_ROOT=/ui
-ENV DL_ROOT=/dl
-ENV DB_ROOT=/db
+ENV XDG_CONFIG_HOME=/config
 
-RUN mkdir -p $UI_ROOT $DL_ROOT $DB_ROOT 
+COPY server.json /config/cloudtitan/server.json
+COPY entry.sh /entry.sh
+RUN chmod a+x /entry.sh
+
+RUN mkdir -p /ui /dl /db
 
 COPY ui /tmp/build/ui
 RUN npm --prefix /tmp/build/ui i && \
     npm --prefix /tmp/build/ui run build && \
-    mv /tmp/build/ui/dist/* $UI_ROOT/
+    mv /tmp/build/ui/dist/* /ui/
 
 COPY common /tmp/build/common
 RUN npm --prefix /tmp/build/common i
@@ -31,7 +33,7 @@ COPY worker /tmp/build/worker
 RUN npm --prefix /tmp/build/worker i && \
     npm --prefix /tmp/build/worker run build
 
-RUN mv /tmp/build/dist/* $DL_ROOT/
+RUN mv /tmp/build/dist/* /dl/
 
 RUN rm -Rf /tmp/build
 
@@ -40,4 +42,4 @@ COPY server /server
 RUN npm --prefix /common i --omit=dev && \
     npm --prefix /server i --omit=dev
 
-ENTRYPOINT pm2-runtime start /server/src/cloudtitan.js
+ENTRYPOINT ["/entry.sh"]

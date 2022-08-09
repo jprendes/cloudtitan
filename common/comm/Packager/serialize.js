@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { signed, unsigned } from "leb128";
+import wtf8 from "wtf-8";
 
 import {
     toArrayBuffer,
@@ -18,7 +19,7 @@ class Serializer {
             } else if (ArrayBuffer.isView(elem) || elem instanceof ArrayBuffer) {
                 this.#buffers.push(Buffer.from(toArrayBuffer(elem)));
             } else if (typeof elem === "string") {
-                this.#buffers.push(Buffer.from(elem));
+                this.#buffers.push(Buffer.from(elem, "binary"));
             // eslint-disable-next-line no-bitwise
             } else if ((typeof elem === "number") && (elem | 0) === elem) {
                 this.#buffers.push(unsigned.encode(elem));
@@ -77,7 +78,14 @@ function serialize_impl(obj, references) {
             .push(Float64Array.from([obj]));
     }
     if (typeof obj === "string") {
-        const buff = Buffer.from(obj);
+        if ([...obj].every((c) => c.charCodeAt(0) < 256)) {
+            const buff = Buffer.from(obj, "binary");
+            return buffers
+                .push(TYPES.BINARY)
+                .push(buff.byteLength)
+                .push(buff);
+        }
+        const buff = Buffer.from(wtf8.encode(obj), "binary");
         return buffers
             .push(TYPES.STRING)
             .push(buff.byteLength)
@@ -129,7 +137,7 @@ function serialize_impl(obj, references) {
         .push(TYPES.OBJECT)
         .push(entries.length);
     for (const [key, value] of entries) {
-        const buff = Buffer.from(key);
+        const buff = Buffer.from(wtf8.encode(key), "binary");
         buffers
             .push(buff.byteLength)
             .push(buff)

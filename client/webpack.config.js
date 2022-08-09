@@ -7,12 +7,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default {
     target: "node",
     mode: "production",
-    entry: "./src/cloudtitan.js",
+    entry: "./src/main.js",
     node: {
         __dirname: false,
     },
     output: {
-        filename: "cloudtitan.js",
+        filename: "main.js",
         path: resolve(__dirname, "build"),
         chunkFormat: "commonjs",
     },

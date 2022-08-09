@@ -4,8 +4,8 @@ class Channel extends Evented {
     #backlog = [];
     #running = [];
 
-    get pending() { return this.#backlog.length; }
-    get running() { return this.#backlog.length; }
+    get pending() { return this.#backlog; }
+    get running() { return this.#running; }
 
     push(task) {
         if (this.closed) throw new Error("Channel is closed");
@@ -21,13 +21,13 @@ class Channel extends Evented {
 
     #closed = false;
     get closed() { return this.#closed; }
-    get ended() { return this.closed && this.pending === 0; }
+    get ended() { return this.closed && this.pending.length === 0; }
 
     #closePromise = null;
     async #close() {
         this.#closed = true;
         this.emit("close");
-        while (this.pending > 0 || this.running > 0) {
+        while (this.pending.length > 0 || this.running.length > 0) {
             // eslint-disable-next-line no-await-in-loop
             await this.once(["work", "task"]);
         }
@@ -49,6 +49,7 @@ class Channel extends Evented {
 
     remove(task) {
         this.#backlog = this.#backlog.filter((t) => t !== task);
+        this.emit("task");
     }
 
     #workers = 0;
@@ -67,7 +68,7 @@ class Channel extends Evented {
                     while (true) {
                         if (aborter.aborted) {
                             break;
-                        } else if (that.pending === 0) {
+                        } else if (that.pending.length === 0) {
                             // eslint-disable-next-line no-await-in-loop
                             const [evt] = await aborter.once(["task", "end", "abort"]);
                             if (evt === "abort" || evt === "end") break;
@@ -76,7 +77,7 @@ class Channel extends Evented {
                             that.#running.push(task);
                             that.emit("tick");
                             yield task;
-                            that.#running.filter((t) => t !== task);
+                            that.#running = that.#running.filter((t) => t !== task);
                             that.emit("work");
                         }
                     }

@@ -72,14 +72,11 @@ class Evented extends Owner {
     }
 
     once(evts, f) {
-        const stack = new Error("stack");
         if (!f) {
             return new Promise((resolve, reject) => {
                 this.once(["destroy"].concat(evts), (evt, ...args) => {
                     if (![].concat(evts).includes(evt)) {
                         // This is the "destroy" we added
-                        console.error(evts, evt);
-                        console.error(stack);
                         reject(new Error("Object has been destroyed"));
                     } else if (Array.isArray(evts)) {
                         resolve([evt, ...args]);

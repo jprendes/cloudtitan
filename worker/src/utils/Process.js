@@ -4,6 +4,7 @@ import Evented from "cloudtitan-common/events/Evented.js";
 class Process extends Evented {
     #child = null;
     #exit = null;
+    #killed = false;
 
     constructor(program, args = [], opts = {}) {
         super();
@@ -22,7 +23,7 @@ class Process extends Evented {
         super.destroy();
     };
 
-    #onData = (data) => this.emit("data", data);
+    #onData = (data) => !this.#killed && this.emit("data", data);
 
     resize(cols, rows) {
         this.#child?.resize(cols - 1, rows - 1);
@@ -38,6 +39,7 @@ class Process extends Evented {
     }
 
     kill(signal = "SIGKILL") {
+        this.#killed = true;
         if (!this.#child) return;
         this.#child.kill(signal);
         this.emit("kill");

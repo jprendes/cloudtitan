@@ -9,6 +9,10 @@ class GoogleOAuth2 {
         this.#client = new OAuth2Client(clientId);
     }
 
+    get clientId() {
+        return this.#clientId;
+    }
+
     async verify(token) {
         try {
             const ticket = await this.#client.verifyIdToken({
@@ -24,7 +28,11 @@ class GoogleOAuth2 {
                 picture: photo,
             } = payload;
             return {
-                id, domain, email, name, photo,
+                id,
+                domain,
+                email,
+                name,
+                photo,
             };
         } catch (err) {
             console.warn(err);

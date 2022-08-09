@@ -77,6 +77,7 @@ class Auth extends Observable {
             scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
             callback: this.#handleOauthResponse,
         });
+        this.#save(await (await fetch("/auth/query")).json());
         delete this.then;
         this.emit("loaded", []);
     };
