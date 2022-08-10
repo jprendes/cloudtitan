@@ -39,6 +39,7 @@ class Worker {
     }
 
     async #run() {
+        console.log("New worker. Running health check.");
         if (!await this.#runHealthcheck()) {
             // Health check failed.
             console.error("Worker failed health check");
@@ -52,6 +53,7 @@ class Worker {
             this.#sock.close(1011, "Failed healthcehck");
             return;
         }
+        console.log("Health check passed.");
 
         const tasks = this.#queue.tasks();
         this.#sock.on("close", () => tasks.abort());
