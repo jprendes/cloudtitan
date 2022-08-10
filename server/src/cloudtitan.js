@@ -31,14 +31,21 @@ const auth = new Auth();
 const queue = new Channel();
 
 const jobs = await database.get("queue") || [];
-for (const id of jobs) {
-    // eslint-disable-next-line no-await-in-loop
-    const session = await Session.byId(id);
-    if (!session) continue;
-    if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
-    session.status = Session.STATUS.PENDING;
-    queue.push(session);
+console.log("Restoring queued sessions:");
+if (jobs.length === 0) {
+    console.log("  No sessions to restore");
+} else {
+    for (const id of jobs) {
+        // eslint-disable-next-line no-await-in-loop
+        const session = await Session.byId(id);
+        if (!session) continue;
+        if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
+        console.log(`  * ${Buffer.from(session.id, "binary").toString("base64url")}`);
+        session.status = Session.STATUS.PENDING;
+        queue.push(session);
+    }
 }
+console.log("");
 
 queue.on(["work", "task", "tick"], () => {
     const running = queue.running.map(({ id }) => id);
