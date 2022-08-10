@@ -14,6 +14,7 @@ import Channel from "./utils/Channel.js";
 import Static from "./Static.js";
 import Proxy from "./Proxy.js";
 import Auth from "./auth/Auth.js";
+import User from "./auth/User.js";
 import * as cookie from "./utils/cookie.js";
 import Worker from "./session/Worker.js";
 import Session from "./session/Session.js";
@@ -40,7 +41,12 @@ if (jobs.length === 0) {
         const session = await Session.byId(id);
         if (!session) continue;
         if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
-        console.log(`  * ${Buffer.from(session.id, "binary").toString("base64url")}`);
+        if (!session.owner) continue;
+        // eslint-disable-next-line no-await-in-loop
+        const owner = await User.byId(session.owner);
+        if (!owner) continue;
+        const token = tkn.stringify([owner.id, session.id]);
+        console.log(`  * ${token.slice(0, 8)} (${owner.email})`);
         session.status = Session.STATUS.PENDING;
         queue.push(session);
     }
@@ -134,12 +140,19 @@ server.http("/session/new", async (req, res) => {
         commands.push(cmd);
     }
 
-    const session = await Session.new({ binaries, commands });
+    const session = await Session.new({
+        binaries,
+        commands,
+        owner: user.id,
+    });
 
     queue.push(session);
 
     user.sessions.add(session.id);
     const token = tkn.stringify([user.id, session.id]);
+
+    console.log(`Queued session for ${user.email}`);
+
     return sendJSON(res, { id: token });
 });
 

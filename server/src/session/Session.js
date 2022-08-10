@@ -20,7 +20,7 @@ class Session extends Evented {
         return session;
     }
 
-    static async new({ binaries, commands }) {
+    static async new({ binaries, commands, owner }) {
         // Create a unique id
         let id = await uuid();
         // eslint-disable-next-line no-await-in-loop
@@ -32,6 +32,7 @@ class Session extends Evented {
         const session = new Session(id, {
             binaries,
             commands,
+            owner,
         });
         await session.save();
         return session;
@@ -47,6 +48,7 @@ class Session extends Evented {
     #id = null;
     binaries = null;
     commands = null;
+    owner = "";
     history = [];
     status = Session.STATUS.PENDING;
     timeout = 300e3;
@@ -57,6 +59,7 @@ class Session extends Evented {
     constructor(id, {
         binaries = Session.BINARIES,
         commands = Session.COMMANDS,
+        owner = "",
         history = [],
         status = Session.STATUS.PENDING,
         creationDate = Date.now(),
@@ -73,6 +76,7 @@ class Session extends Evented {
         this.#id = id;
         this.binaries = binaries;
         this.commands = commands;
+        this.owner = owner;
         this.history = history;
         this.status = status;
         this.timeout = timeout;
