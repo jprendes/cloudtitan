@@ -101,6 +101,9 @@ export default async (firmware, { bitstream, timeout, ...opts }) => {
     });
 
     if (res.status !== 200) {
+        if (res.statusText) {
+            throw new Error(`Job upload failed (${res.statusText})`);
+        }
         throw new Error("Job upload failed");
     }
 
