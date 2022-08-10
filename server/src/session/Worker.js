@@ -37,8 +37,14 @@ class Worker {
 
     async #runHealthcheck() {
         const session = await Session.byId("healthcheck");
-        session.on(["console", "prompt", "command", "error"], (evt, _, chunk) => console.log(`  > ${chunk}`));
-        return this.#runSession(session);
+        const success = await this.#runSession(session);
+        if (!success) {
+            for (const [,, chunk] of session.history) {
+                process.stderr.write("  > ");
+                process.stderr.write(chunk);
+            }
+        }
+        return success;
     }
 
     async #run() {
