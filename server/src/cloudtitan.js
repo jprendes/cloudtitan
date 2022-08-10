@@ -150,7 +150,7 @@ server.http("/session/new", async (req, res) => {
     user.sessions.add(session.id);
     const token = tkn.stringify([user.id, session.id]);
 
-    console.log(`Queued session for ${user.email}`);
+    console.log(`Queued session (${user.email})`);
 
     return sendJSON(res, { id: token });
 });
