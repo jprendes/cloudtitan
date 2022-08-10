@@ -37,8 +37,8 @@ class Worker {
 
     async #runHealthcheck() {
         const session = await Session.byId("healthcheck");
-        session.on(["console", "prompt", "command", "error"], (_, chunk) => console.log(chunk));
-        return this.#runSession(await Session.byId("healthcheck"));
+        session.on(["console", "prompt", "command", "error"], (evt, _, chunk) => console.log(`  > ${chunk}`));
+        return this.#runSession(session);
     }
 
     async #run() {
