@@ -53,6 +53,7 @@ class Session extends Evented {
     status = Session.STATUS.PENDING;
     timeout = 300e3;
     creationDate = Date.now();
+    restarts = 0;
 
     #temp = false;
 
@@ -64,6 +65,7 @@ class Session extends Evented {
         status = Session.STATUS.PENDING,
         creationDate = Date.now(),
         timeout = 300e3,
+        restarts = 0,
         temp = false,
     }) {
         super();
@@ -81,6 +83,7 @@ class Session extends Evented {
         this.status = status;
         this.timeout = timeout;
         this.creationDate = creationDate;
+        this.restarts = restarts;
 
         if (!this.#temp) Session.#byId.set(id, this);
     }
@@ -93,22 +96,22 @@ class Session extends Evented {
         return db.set(this.id, {
             binaries: this.binaries,
             commands: this.commands,
+            owner: this.owner,
             history: this.history,
             status: this.status,
+            timeout: this.timeout,
             creationDate: this.creationDate,
+            restarts: this.restarts,
         });
     }
 
     delete() {
-        this.status = Session.STATUS.DELETED;
-        this.emit("delete");
+        this.setStatus(Session.STATUS.DELETED);
         if (!this.#temp) Session.#byId.delete(this.id);
     }
 
     async run(chann) {
-        this.status = Session.STATUS.RUNNING;
-        this.emit("status");
-        this.save();
+        this.setStatus(Session.STATUS.RUNNING);
 
         let reason = false;
         this.once(["done", "timeout"]).then((evt) => { reason = evt; });
@@ -116,20 +119,30 @@ class Session extends Evented {
         await chann.once("close");
 
         if (!reason) {
+            if (this.restarts >= 5) {
+                this.#remoteEvt("error", "Session error. Aborting.");
+                this.setStatus(Session.STATUS.DONE);
+                return true;
+            }
+
+            this.restarts += 1;
             this.#remoteEvt("error", "Session error. Restarting.");
-            this.status = Session.STATUS.PENDING;
-            this.emit("status");
-            this.save();
+            this.setStatus(Session.STATUS.PENDING);
             return false;
         }
 
         this.binaries = new Map();
-        this.status = Session.STATUS.DONE;
-        this.emit("status");
-        this.emit("done");
-        this.save();
+        this.setStatus(Session.STATUS.DONE);
 
         return true;
+    }
+
+    setStatus(status) {
+        this.status = status;
+        this.emit("status");
+        this.save();
+        if (status === Session.STATUS.DONE) this.emit("done");
+        if (status === Session.STATUS.DELETED) this.emit("delete");
     }
 
     #remoteEvt = (evt, ...args) => {
