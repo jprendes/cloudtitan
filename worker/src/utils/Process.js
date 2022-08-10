@@ -1,10 +1,11 @@
 import { spawn } from "node-pty";
 import Evented from "cloudtitan-common/events/Evented.js";
+import Buffered from "./Buffered.js";
 
 class Process extends Evented {
     #child = null;
     #exit = null;
-    #killed = false;
+    #buffered = new Buffered();
 
     constructor(program, args = [], opts = {}) {
         super();
@@ -14,16 +15,16 @@ class Process extends Evented {
         });
         this.#child.onExit(this.#onExit);
         this.#exit = this.once(["exit", "destroy"]).then(([, reason]) => reason);
-        this.#child.onData(this.#onData);
+        this.#child.onData((data) => this.#buffered.push(data));
+        this.#buffered.on("data", (data) => this.emit(data));
     }
 
     #onExit = ({ exitCode: code, signal }) => {
+        this.#buffered.flush();
         this.#child = null;
         this.emit("exit", code !== null ? code : signal);
         super.destroy();
     };
-
-    #onData = (data) => !this.#killed && this.emit("data", data);
 
     resize(cols, rows) {
         this.#child?.resize(cols - 1, rows - 1);
@@ -39,7 +40,8 @@ class Process extends Evented {
     }
 
     kill(signal = "SIGKILL") {
-        this.#killed = true;
+        this.#buffered.flush();
+        this.#buffered.destroy();
         if (!this.#child) return;
         this.#child.kill(signal);
         this.emit("kill");
