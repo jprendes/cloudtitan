@@ -30,6 +30,7 @@ class Worker {
             return await session.run(chann);
         } catch (err) {
             console.error("Worker failed task");
+            console.error(err);
             return false;
         }
     }
