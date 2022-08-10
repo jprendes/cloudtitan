@@ -42,7 +42,7 @@ class Worker {
     }
 
     async #run() {
-        console.log("New worker. Running health check.");
+        console.log("Running health check.");
         if (!await this.#runHealthcheck()) {
             // Health check failed.
             console.error("Worker failed health check");

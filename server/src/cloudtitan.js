@@ -238,6 +238,8 @@ server.ws("/worker", async (conn, req) => {
     const sock = Socket.fromWebSocket(conn, { timeout: 30e3 });
     const worker = new Worker(sock, queue);
 
+    console.log(`New worker (${user.email})`);
+
     try {
         await worker.run();
     } catch (err) {
