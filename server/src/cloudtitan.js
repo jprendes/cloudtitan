@@ -33,23 +33,22 @@ const queue = new Channel();
 
 const jobs = await database.get("queue") || [];
 console.log("Restoring queued sessions:");
-if (jobs.length === 0) {
+for (const id of jobs) {
+    // eslint-disable-next-line no-await-in-loop
+    const session = await Session.byId(id);
+    if (!session) continue;
+    if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
+    if (!session.owner) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const owner = await User.byId(session.owner);
+    if (!owner) continue;
+    const token = tkn.stringify([owner.id, session.id]);
+    console.log(`  * ${token.slice(0, 8)} (${owner.email})`);
+    session.status = Session.STATUS.PENDING;
+    queue.push(session);
+}
+if (queue.pending.length === 0) {
     console.log("  No sessions to restore");
-} else {
-    for (const id of jobs) {
-        // eslint-disable-next-line no-await-in-loop
-        const session = await Session.byId(id);
-        if (!session) continue;
-        if (![Session.STATUS.RUNNING, Session.STATUS.PENDING].includes(session.status)) continue;
-        if (!session.owner) continue;
-        // eslint-disable-next-line no-await-in-loop
-        const owner = await User.byId(session.owner);
-        if (!owner) continue;
-        const token = tkn.stringify([owner.id, session.id]);
-        console.log(`  * ${token.slice(0, 8)} (${owner.email})`);
-        session.status = Session.STATUS.PENDING;
-        queue.push(session);
-    }
 }
 console.log("");
 
