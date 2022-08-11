@@ -33,6 +33,11 @@ COPY worker /tmp/build/worker
 RUN npm --prefix /tmp/build/worker i && \
     npm --prefix /tmp/build/worker run build
 
+COPY install-client-template.sh /tmp/build/
+COPY build-install-script.sh /tmp/build/
+
+RUN /tmp/build/build-install-script.sh /tmp/build/install-client-template.sh /tmp/build/dist/cloudtitan.gz /tmp/build/dist/install.sh
+
 RUN mv /tmp/build/dist/* /dl/
 
 RUN rm -Rf /tmp/build
