@@ -86,10 +86,10 @@ class CloudtitanUsage extends LitElement {
                 </div>
                 <div id="body">
                     <ul class="code">
-                        <li>curl -o- ${document.location.origin}/dl/cloudtitan > cloudtitan</li>
-                        <li>chmod a+x cloudtitan</li>
-                        <li>./cloudtitan -h</li>
-                        <li>./cloudtitan -a $AUTH_TOKEN -b /my/bitstream -f /my/firmware</li>
+                        <li>curl -o- ${document.location.origin}/dl/install.sh | bash</li>
+                        <li>exec $SHELL</li>
+                        <li>cloudtitan -h</li>
+                        <li>cloudtitan -a $AUTH_TOKEN -b /my/bitstream /my/firmware</li>
                     </ul>
                 </div>
             </div>
