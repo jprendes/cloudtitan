@@ -7,7 +7,7 @@ import fetch from "node-fetch";
 import { compress } from "cloudtitan-common/utils/gzip.js";
 import { serialize } from "cloudtitan-common/comm/Packager.js";
 
-import { stderr, COLORS } from "./write.js";
+import term from "cloudtitan-common/utils/Term.js";
 
 import open from "./open.js";
 import { reduce } from "./session.js";
@@ -109,7 +109,7 @@ export default async (firmware, { bitstream, timeout, ...opts }) => {
 
     let { id } = await res.json();
     [id] = await reduce([id], opts);
-    stderr.color(COLORS.YELLOW).bold().println(`Session: ${id}`);
+    term.yellow.bold.errorln(`Session: ${id}`);
 
     return open(id, opts);
 };

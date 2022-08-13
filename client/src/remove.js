@@ -2,7 +2,7 @@ import { Agent } from "https";
 
 import fetch from "node-fetch";
 
-import { stderr, COLORS } from "./write.js";
+import term from "cloudtitan-common/utils/Term.js";
 
 import { list, find, ensureCache } from "./session.js";
 
@@ -40,11 +40,11 @@ export default async (sessions, { all, ...opts }) => {
     const ok = sessions.filter((s, i) => success[i]);
     const failed = sessions.filter((s, i) => !success[i]);
 
-    stderr.color(COLORS.YELLOW).bold().println(`Removed ${ok.length} sessions.`);
+    term.yellow.bold.errorln(`Removed ${ok.length} sessions.`);
     if (failed.length) {
-        stderr.color(COLORS.RED).bold().println("Failed to remove the following sessions:");
+        term.red.bold.errorln("Failed to remove the following sessions:");
         failed.forEach((session, i) => {
-            stderr.color(COLORS.RED).println(`  ${i + 1}. ${session}`);
+            term.red.errorln(`  ${i + 1}. ${session}`);
         });
     }
 };
