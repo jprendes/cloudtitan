@@ -2,11 +2,9 @@ import { Agent } from "https";
 
 import fetch from "node-fetch";
 
-import { reduce } from "./session.js";
+import term from "cloudtitan-common/utils/Term.js";
 
-import {
-    stderr, COLORS, pad,
-} from "./write.js";
+import { reduce } from "./session.js";
 
 function relativeTimeFormat(time) {
     const units = [["second", 60], ["minute", 60], ["hour", 24], ["day", 7], ["week", 365 / 12 / 7], ["month", 12], ["year", Infinity]];
@@ -45,20 +43,21 @@ export default async (opts) => {
     }
 
     const sessions = await res.json();
-    stderr.color(COLORS.YELLOW).bold().println("Sessions:");
+
+    term.yellow.bold.logln("Sessions:");
 
     if (sessions.length === 0) {
-        stderr.color(COLORS.YELLOW).println("  No Sessions");
+        term.yellow.logln("  No Sessions");
         return;
     }
 
     const data = [
-        ["", "ID", "  Creation", "  Status"],
+        ["", "ID", "Creation", "Status"],
         ...sessions.map(([id, { status, creationDate }], i) => [
-            `  ${i + 1}.  `,
+            `${i + 1}.`,
             id,
-            `  ${relativeTimeFormat(creationDate)}`,
-            `  ${status}`,
+            `${relativeTimeFormat(creationDate)}`,
+            `${status}`,
         ]),
     ];
 
@@ -70,13 +69,15 @@ export default async (opts) => {
         .map((_, i) => Math.max(...data.map((v) => v[i].length)));
 
     data.forEach(([index, id, creationDate, status], i) => {
-        index = pad(index, widths[0], { align: "left" });
-        id = pad(id, widths[1], { align: "left" });
-        creationDate = pad(creationDate, widths[2], { align: "left" });
-        status = pad(status, widths[3], { align: "left" });
-        let out = stderr.color(COLORS.YELLOW);
-        if (i === 0) out = out.bold();
-        out.bold().print(index);
-        out.print(`${id}${creationDate}${status}\n`);
+        const t = i === 0 ? term.bold.yellow : term.yellow;
+        t.errorln(`  ${
+            t.pad(widths[0]).bold(index)
+        }  ${
+            t.pad(widths[1])(id)
+        }  ${
+            t.pad(widths[2])(creationDate)
+        }  ${
+            t.pad(widths[3])(status)
+        }`);
     });
 };

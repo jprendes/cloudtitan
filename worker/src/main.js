@@ -1,8 +1,8 @@
 import { Command, Option } from "commander";
 
-import run from "./run.js";
+import term from "cloudtitan-common/utils/Term.js";
 
-import { stderr, write } from "./write.js";
+import run from "./run.js";
 
 import { DEFAULTS } from "./config.js";
 
@@ -18,7 +18,7 @@ const command = (f) => async (...args) => {
     try {
         await f(...args, { ...cmd.optsWithGlobals() });
     } catch (err) {
-        write(stderr, "\x1b[1;31m", "Error: ", err.message, "\r\n\x1b[0m");
+        term.red.bold.errorln("Error: ", err.message);
     }
 };
 

@@ -1,11 +1,11 @@
 import { Command } from "commander";
 
+import term from "cloudtitan-common/utils/Term.js";
+
 import run from "./run.js";
 import open from "./open.js";
 import list from "./list.js";
 import remove from "./remove.js";
-
-import { stderr, COLORS } from "./write.js";
 
 import { DEFAULTS } from "./config.js";
 
@@ -21,7 +21,7 @@ const command = (f) => async (...args) => {
     try {
         await f(...args, { ...cmd.optsWithGlobals() });
     } catch (err) {
-        stderr.color(COLORS.RED).bold().println(`Error: ${err.message}`);
+        term.red.bold.errorln("Error: ", err.message);
     }
 };
 

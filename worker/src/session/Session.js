@@ -2,7 +2,8 @@
 import Evented from "cloudtitan-common/events/Evented.js";
 import Owner from "cloudtitan-common/events/Owner.js";
 import Watchdog from "cloudtitan-common/utils/Watchdog.js";
-import { stderr, write } from "../write.js";
+import term from "cloudtitan-common/utils/Term.js";
+import * as ProgressBar from "cloudtitan-common/utils/ProgressBar.js";
 
 import Sandbox from "./Sandbox.js";
 import DemoSession from "./DemoSession.js";
@@ -29,7 +30,7 @@ class Session extends Evented {
     #onCommandData = (data) => {
         data = data.toString("binary");
         console.log(data);
-        data = data.replace(/\[(█*)(░*)\]/g, (_, done, todo) => `[█×${done.length},░×${todo.length},_×1024]`);
+        data = ProgressBar.zip(data, 1024);
         this.emit("command", data);
     };
 
@@ -90,7 +91,7 @@ class Session extends Evented {
             }));
 
             for (const [cmd, ...args] of commands) {
-                write(stderr, "\x1b[32m    ", [cmd, ...args].join(" "), "\r\n\x1b[0m");
+                term.green.errorln("    ", [cmd, ...args].join(" "));
                 try {
                     switch (cmd) {
                     case "console": {

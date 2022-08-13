@@ -4,9 +4,9 @@ import fetch from "node-fetch";
 
 import { deserialize } from "cloudtitan-common/comm/Packager.js";
 import Socket from "cloudtitan-common/comm/Socket.js";
+import term from "cloudtitan-common/utils/Term.js";
 
 import Session from "./session/Session.js";
-import { stderr, write } from "./write.js";
 
 export default async ({ sessionId, demo, ...opts }) => {
     const {
@@ -34,7 +34,7 @@ export default async ({ sessionId, demo, ...opts }) => {
 
     sock.on("channel", async (id, chann) => {
         try {
-            write(stderr, "\x1b[1;33m> ", "Running session ", JSON.stringify(id), "\r\n\x1b[0m");
+            term.yellow.bold.errorln("> Running session ", JSON.stringify(id));
 
             const res = await fetch(`http${host}/session/dl/${id}`, {
                 headers: { "Auth-Token": authToken },
@@ -60,9 +60,10 @@ export default async ({ sessionId, demo, ...opts }) => {
 
             await session.ready();
             await session.start(binaries, commands, timeout);
-            write(stderr, "\x1b[1;33m< ", "Done ", JSON.stringify(id), "\r\n\x1b[0m");
+
+            term.yellow.bold.errorln("< Done: ", JSON.stringify(id));
         } catch (err) {
-            write(stderr, "\x1b[1;31m> ", "Error: ", err?.message, "\r\n\x1b[0m");
+            term.red.bold.errorln("> Error: ", err?.message);
         } finally {
             if (!chann.closed) chann.close();
         }
@@ -70,6 +71,6 @@ export default async ({ sessionId, demo, ...opts }) => {
 
     const [code, reason] = await done;
     if (code !== 1000) {
-        write(stderr, "\x1b[1;31mConnection closed: ", reason || `code ${code}`, "\r\n\x1b[0m");
+        term.red.bold.errorln("Connection closed: ", reason || `code ${code}`);
     }
 };
